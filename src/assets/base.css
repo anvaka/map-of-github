@@ -14,6 +14,7 @@
   --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
   --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
   --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --vt-c-link-highlight: hsla(160, 100%, 37%, 1);
 
   --vt-c-text-light-1: var(--vt-c-indigo);
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
@@ -33,7 +34,11 @@
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
 
+  --color-link: var(--vt-c-divider-light-1);
+  --color-link-hover: var(--vt-c-link-highlight);
+  
   --section-gap: 160px;
+  --side-panel-width: 400px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +49,8 @@
 
     --color-border: var(--vt-c-divider-dark-2);
     --color-border-hover: var(--vt-c-divider-dark-1);
+
+    --color-link: var(--vt-c-divider-dark-1);
 
     --color-heading: var(--vt-c-text-dark-1);
     --color-text: var(--vt-c-text-dark-2);

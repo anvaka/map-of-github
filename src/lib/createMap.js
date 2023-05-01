@@ -1,5 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import bus from './bus';
+import config from './config';
 
 export default function createMap() {
   const map = new maplibregl.Map(getDefaultStyle());
@@ -31,6 +32,8 @@ export default function createMap() {
   //   });
 
   });
+
+  return map;
 }
 
 function getDefaultStyle() {
@@ -43,10 +46,10 @@ function getDefaultStyle() {
       version: 8,
       glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       sources: {
-        'borders-source': { type: 'geojson', data: 'borders.geojson', },
+        'borders-source': { type: 'geojson', data: config.bordersSource, },
         'points-source': {
           type: 'vector',
-          url: "http://localhost:8082/data/cities.json",
+          url: config.vectorTilesSource,
         },
       },
       layers: [

@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "fuzzysort": "^1.2.0",
     "maplibre-gl": "^2.4.0",
     "ngraph.events": "^1.2.2",
     "vue": "^3.2.47"

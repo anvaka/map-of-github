@@ -1,36 +1,54 @@
+import 'maplibre-gl/dist/maplibre-gl.css';
 import maplibregl from 'maplibre-gl';
 import bus from './bus';
 import config from './config';
+import {getCustomLayer} from './gl/createLinesCollection.js';
+import downloadGroupGraph from './downloadGroupGraph.js';
 
 export default function createMap() {
   const map = new maplibregl.Map(getDefaultStyle());
+  const fastLinesLayer = getCustomLayer();
+
+  map.on('load', () => {
+    map.addLayer(fastLinesLayer, 'circle-layer');
+  })
 
   map.on('click', (e) => {
     const features = map.queryRenderedFeatures(e.point, { layers: ['circle-layer'] });
     if (!features.length) return;
 
-    let repo = features[0]?.properties.label
+    const repo = features[0]?.properties.label
     if (!repo) return;
-    bus.fire('repo-selected', repo);
+    const [lat, lon] = features[0].geometry.coordinates
+    bus.fire('repo-selected', { text: repo, lat, lon });
 
-  //   fetch('https://libraries.io/api/github/' + repo, { mode: 'cors' }).then(x => x.json()).then(x => {
-  //     document.querySelector('.readme-content').innerHTML = '';
-  //     if (!x) {
-  //       console.warn('Could not find repo', repo)
-  //       return;
-  //     }
-  //     const { has_readme: readme, default_branch } = x;
-  //     const sidebar = document.querySelector('.sidebar-header');
-  //     sidebar.replaceChildren(createGithubCard(x));
-  //     if (readme && default_branch) {
-  //       tryReadme(repo, readme, default_branch);
-  //     } else {
-  //       tryReadme(repo, 'README.md', 'master').catch(err => {
-  //         console.error('Could not find readme', err)
-  //       });
-  //     }
-  //   });
+    const borderFeature = map.queryRenderedFeatures(e.point, { layers: ['polygon-layer'] });
+    const groupId = borderFeature[0]?.properties?.groupId;
+    if (groupId !== undefined) {
+      fastLinesLayer.clear();
+      downloadGroupGraph(groupId).then(groupGraph => {
+        groupGraph.forEachLink(link => {
+          if (link.data?.e) return; // external;
+          let from = groupGraph.getNode(link.fromId).data.l;
+          let to = groupGraph.getNode(link.toId).data.l;
 
+          from = maplibregl.MercatorCoordinate.fromLngLat({
+            lng: from[0],
+            lat: from[1]
+          }),
+          to = maplibregl.MercatorCoordinate.fromLngLat({
+            lng: to[0],
+            lat: to[1]
+          }),
+          fastLinesLayer.addLine({
+            from: [from.x, from.y],
+            to: [to.x, to.y],
+            color: 0xffffff28
+          });
+        });
+        map.redraw();
+      })
+    }
   });
 
   return map;
@@ -54,13 +72,20 @@ function getDefaultStyle() {
       },
       layers: [
         {
+        id: 'background',
+        type: 'background',
+        paint: {
+          'background-color': '#111'
+        }
+      },
+        {
           'id': 'polygon-layer',
           'type': 'fill',
           'source': 'borders-source',
           filter: ['==', '$type', 'Polygon'],
           'paint': {
             'fill-color': ['get', 'fill'],
-            'fill-outline-color': '#FFF',
+            // 'fill-outline-color': '#FFF',
           }
         },
         {

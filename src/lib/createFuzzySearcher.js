@@ -1,5 +1,6 @@
 import fuzzysort from 'fuzzysort';
 import log from './log.js';
+import config from './config.js';
 
 const fetchedIndex = new Set();
 const seenWords = new Set();
@@ -21,7 +22,7 @@ export default function createFuzzySearcher() {
     if (!fetchedIndex.has(cacheKey)) {
       log('FuzzySearch', 'Fetching index for', cacheKey);
       let isCancelled = false;
-      const p = fetch(`names/${cacheKey}.json`).then(r => r.json()).then(data => {
+      const p = fetch(`${config.namesEndpoint}/${cacheKey}.json`).then(r => r.json()).then(data => {
         data.forEach(word => {
           if (!seenWords.has(word[0])) {
             words.push({name: word[0], lat: word[1], lon: word[2]});

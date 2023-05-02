@@ -1,8 +1,9 @@
 <template>
   <div class='ak-typeahead' v-click-outside='hideSuggestions'>
     <a href="#" class='menu-opener' @click.prevent='menuClicked'>
+      <img :src="currentUser.avatar_url" class="avatar" v-if="currentUser">
       <!-- Icon copyright (c) 2013-2017 Cole Bemis: https://github.com/feathericons/feather/blob/master/LICENSE -->
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
   </a>
     <input
       ref='input' autofocus
@@ -55,7 +56,9 @@
 </template>
 
 <script>
-import ClickOutside from '../lib/clickOutside.js'
+import bus from '../lib/bus.js';
+import ClickOutside from '../lib/clickOutside.js';
+import { getCurrentUser } from '../lib/githubClient';
 
 export default {
   directives: { ClickOutside },
@@ -73,6 +76,13 @@ export default {
       default: 80
     }
   },
+  mounted() {
+    this.updateCurrentUser()
+    bus.on('auth-changed', this.updateCurrentUser);
+  },
+  beforeUnmount() {
+    bus.off('auth-changed', this.updateCurrentUser);
+  },
   data() {
     return {
       currentSelected: -1,
@@ -80,7 +90,8 @@ export default {
       showLoading: false,
       loadingError: null,
       suggestions: [],
-      currentQuery: this.query
+      currentQuery: this.query,
+      currentUser: null,
     };
   },
   watch: {
@@ -89,6 +100,12 @@ export default {
     }
   },
   methods: {
+    updateCurrentUser() {
+      getCurrentUser().then(user => {
+        this.currentUser = user
+      });
+    },
+
     refresh() {
       if (this.showSuggestions) this.getSuggestionsInternal();
     },
@@ -231,12 +248,19 @@ function toOwnSuggestion(x) {
 
 <style>
 
+img.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  aspect-ratio: auto 24 / 24;
+}
 .ak-typeahead {
   height: 100%;
   flex: 1;
   display: flex;
   flex-direction: row;
   align-items: stretch;
+  background: var(--color-background-soft);
 }
 
 .menu-opener {
@@ -262,7 +286,6 @@ function toOwnSuggestion(x) {
   width: 48px;
   justify-content: center;
   outline: none;
-
 }
 
 .search-submit:hover, .search-submit:focus {
@@ -273,7 +296,9 @@ function toOwnSuggestion(x) {
   display: block;
   width: 100%;
   height: 28px;
-  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   align-items: center;
   padding-left: 10px;
   text-decoration: none;
@@ -296,7 +321,7 @@ function toOwnSuggestion(x) {
   top: 48px;
   width: 100%;
   padding: 0;
-  background: var(--color-background);
+  background: var(--color-background-soft);
   list-style-type: none;
   margin: 0;
   border-top: 1px solid var(--color-border);
@@ -317,6 +342,7 @@ function toOwnSuggestion(x) {
 input[type='text'] {
   height: 100%;
   width: 100%;
+  padding-right: 48px;
   padding-left: 10px;
   font-size: 18px;
   border: 0;

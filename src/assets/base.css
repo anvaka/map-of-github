@@ -20,6 +20,7 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --vt-c-deep-pink: #ff1493;
 }
 
 /* semantic color variables for this project */
@@ -36,6 +37,9 @@
 
   --color-link: var(--vt-c-divider-light-1);
   --color-link-hover: var(--vt-c-link-highlight);
+  --critical-call-to-action: var(--vt-c-deep-pink);
+  
+  --color-tag-bg: var(--vt-c-white-mute);
   
   --section-gap: 160px;
   --side-panel-width: 400px;
@@ -46,6 +50,7 @@
     --color-background: var(--vt-c-black);
     --color-background-soft: var(--vt-c-black-soft);
     --color-background-mute: var(--vt-c-black-mute);
+    --color-tag-bg: var(--vt-c-black-mute);
 
     --color-border: var(--vt-c-divider-dark-2);
     --color-border-hover: var(--vt-c-divider-dark-1);

@@ -1,0 +1,42 @@
+<html>
+<head>
+    <title>Map of Github OAuth Flow</title>
+</head>
+<body>
+   
+  <script>
+    window.location.search.substring(1).split('&').forEach(function (pair) {
+      var parts = pair.split('=');
+      var key = parts[0];
+      if (key === 'code') {
+        exchangeCodeForToken(parts[1]);
+      }
+    });
+
+    function exchangeCodeForToken(code) {
+      var isDev = window.location.hostname !== 'anvaka.github.io';
+      var clientId = isDev ? '244bf05034e7cf9158cc' : '5f5bbe0c2623f5a7e738';
+      const apiGatewayEndpoint = 'https://1xc2uuk51c.execute-api.us-east-1.amazonaws.com/Prod/github-oauth/?client=' + clientId + '&code=' + code;
+      fetch(apiGatewayEndpoint, {headers: {"Content-Type": "application/json"}})
+        .then(r => r.json())
+        .then(function (data) {
+          console.log(data);
+          if (data.access_token) {
+            document.cookie = 'github_token=' + data.access_token;
+          }
+          if (window.opener) {
+            data.source = 'gh_auth';
+            window.opener.postMessage(data, '*');
+            window.close();
+          } else {
+            // go to the index page:
+            window.location.href = 'index.html';
+          }
+        })
+        .catch(function (err) {
+          console.error(err);
+        });
+      }
+  </script>
+</body>
+</html>

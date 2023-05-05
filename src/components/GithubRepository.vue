@@ -187,6 +187,9 @@ onBeforeUnmount(() => {
 <style scoped>
 h2 {
   font-size: 24px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;;
 }
 
 .repo-viewer {
@@ -200,6 +203,9 @@ h2 a {
 }
 .repo-description {
   line-height: 1.2em;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;;
 }
 .byline {
   margin: 8px 0;

@@ -6,10 +6,12 @@ import bus from './lib/bus'
 
 import createMap from './lib/createMap';
 
-let map = createMap();
+let mapOwner = createMap();
 
 let sidebarVisible = ref(false);
 let currentProject = ref(''); 
+let tooltip = ref(null);
+let contextMenu = ref(null);
 let lastSelected;
 
 function onTypeAheadInput() {
@@ -18,6 +20,7 @@ function onTypeAheadInput() {
 function closeSideBarViewer() {
   sidebarVisible.value = false;
   currentProject.value = '';
+  mapOwner.clearHighlights();
 }
 
 function closeSideBarOnSmallScreen() {
@@ -30,12 +33,12 @@ function findProject(x) {
   } else {
     lastSelected = x;
   }
-  map.flyTo({
+  const location = {
     center: [x.lat, x.lon],
     zoom: 12,
-  });
+  }
+  mapOwner.makeVisible(x.text, location);
   currentProject.value = x.text;
-  console.log(x)
 }
 
 function onRepoSelected(repo) {
@@ -43,16 +46,33 @@ function onRepoSelected(repo) {
   currentProject.value = repo.text;
 }
 
+function onShowTooltip(newTooltip) {
+  tooltip.value = newTooltip;
+}
+
+function onShowContextMenu(newContextMenu) {
+  contextMenu.value = newContextMenu;
+}
+
 onBeforeUnmount(() => {
-  if (map) {
-    map.remove();
+  if (mapOwner) {
+    mapOwner.dispose();
   }
   bus.off('repo-selected', onRepoSelected);
+  bus.off('show-tooltip', onShowTooltip);
+  bus.off('show-context-menu', onShowContextMenu);
 })
 
 onBeforeMount(() => {
   bus.on('repo-selected', onRepoSelected);
-})
+  bus.on('show-context-menu', onShowContextMenu);
+  bus.on('show-tooltip', onShowTooltip);
+});
+
+function doContextMenuAction(menuItem) {
+  contextMenu.value = null;
+  menuItem.click();
+}
 
 </script>
 
@@ -71,6 +91,10 @@ onBeforeMount(() => {
         :query="currentProject"
       ></type-ahead>
     </form>
+    <div class="tooltip" v-if="tooltip" :style="{left: tooltip.left, top: tooltip.top, background: tooltip.background}">{{ tooltip.text }}</div>
+    <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
+      <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
+    </div>
   </div>
 </template>
 
@@ -85,6 +109,31 @@ onBeforeMount(() => {
   cursor: text;
   left: 8px;
   width: var(--side-panel-width);
+}
+.tooltip {
+  position: absolute;
+  background: var(--color-background-soft);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--color-text);
+  z-index: 1;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+.context-menu {
+  position: absolute;
+  background: var(--color-background-soft);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--color-text);
+  z-index: 2;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
 }
 .repo-viewer {
   position: absolute;

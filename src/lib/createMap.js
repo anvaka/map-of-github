@@ -4,54 +4,226 @@ import bus from './bus';
 import config from './config';
 import {getCustomLayer} from './gl/createLinesCollection.js';
 import downloadGroupGraph from './downloadGroupGraph.js';
+import getComplimentaryColor from './getComplimentaryColor';
+import createMarkerEditor from './createMarkerEditor';
+import {getPlaceLabels,  addLabelToPlaces, editLabelInPlaces} from './getPlaceLabels';
 
+const primaryHighlightColor = '#bf2072';
+const secondaryHighlightColor = '#e56aaa';
 export default function createMap() {
+  const placeLabelLayers = ['place-country-1', 'place-country-0'];
   const map = new maplibregl.Map(getDefaultStyle());
   const fastLinesLayer = getCustomLayer();
+  let backgroundEdgesFetch;
+  let places;
+  // collection of labels.
 
   map.on('load', () => {
     map.addLayer(fastLinesLayer, 'circle-layer');
-  })
-
-  map.on('click', (e) => {
-    const features = map.queryRenderedFeatures(e.point, { layers: ['circle-layer'] });
-    if (!features.length) return;
-
-    const repo = features[0]?.properties.label
-    if (!repo) return;
-    const [lat, lon] = features[0].geometry.coordinates
-    bus.fire('repo-selected', { text: repo, lat, lon });
-
-    const borderFeature = map.queryRenderedFeatures(e.point, { layers: ['polygon-layer'] });
-    const groupId = borderFeature[0]?.properties?.groupId;
-    if (groupId !== undefined) {
-      fastLinesLayer.clear();
-      downloadGroupGraph(groupId).then(groupGraph => {
-        groupGraph.forEachLink(link => {
-          if (link.data?.e) return; // external;
-          let from = groupGraph.getNode(link.fromId).data.l;
-          let to = groupGraph.getNode(link.toId).data.l;
-
-          from = maplibregl.MercatorCoordinate.fromLngLat({
-            lng: from[0],
-            lat: from[1]
-          }),
-          to = maplibregl.MercatorCoordinate.fromLngLat({
-            lng: to[0],
-            lat: to[1]
-          }),
-          fastLinesLayer.addLine({
-            from: [from.x, from.y],
-            to: [to.x, to.y],
-            color: 0xffffff28
-          });
-        });
-        map.redraw();
-      })
-    }
+    getPlaceLabels().then(loadedPlaces => {
+      map.getSource('place').setData(loadedPlaces)
+      places = loadedPlaces;
+    });
   });
 
-  return map;
+  map.on('contextmenu', (e) => {
+    bus.fire('show-tooltip');
+    const contextMenuItems = { 
+      items: [{
+        text: 'Add label',
+        click: () => addLabel(e.lngLat)
+      }],
+      left: e.point.x + 'px', 
+      top: e.point.y + 'px' 
+    };
+
+    const labelFeature = map.queryRenderedFeatures(e.point, { layers: placeLabelLayers });
+    if (labelFeature.length) {
+      const label = labelFeature[0].properties;
+      contextMenuItems.items.push({
+        text: `Edit ${label.name}`,
+        click: () => editLabel(labelFeature[0].geometry.coordinates, label)
+      });
+    }
+
+    bus.fire('show-context-menu', contextMenuItems);
+  });
+
+  map.on('mousemove', (e) => {
+    // let hoveredFeature = findNearestCity(e.point);
+    // if (hoveredFeature) {
+    //   const backgroundProperties = getBackgroundNearPoint(e.point);
+    //   bus.fire('show-tooltip', { 
+    //     text: hoveredFeature.properties.label, 
+    //     left: e.point.x + 'px',
+    //     top: e.point.y + 'px',
+    //     background: backgroundProperties?.fill || 'rgba(0,0,0,0.5)',
+    //   });
+    // } else {
+    //   bus.fire('show-tooltip');
+    // }
+  });
+
+  map.on('click', (e) => {
+    bus.fire('show-context-menu');
+    const nearestCity = findNearestCity(e.point);
+    if (!nearestCity) return;
+    const repo = nearestCity.properties.label
+    if (!repo) return;
+    const [lat, lon] = nearestCity.geometry.coordinates
+    bus.fire('show-tooltip');
+    bus.fire('repo-selected', { text: repo, lat, lon });
+
+    drawBackgroundEdges(e.point, repo);
+  });
+
+  return {
+    map,
+    dispose() {
+      map.remove();
+      // TODO: Remove custom layer?
+    },
+    makeVisible,
+    clearHighlights,
+  }
+
+  function addLabel(lngLat) {
+    const markerEditor = createMarkerEditor(map, save);
+
+    const marker = new maplibregl.Popup({closeButton: false});
+    marker.setDOMContent(markerEditor.element);
+    marker.setLngLat(lngLat);
+    marker.addTo(map);
+
+    markerEditor.setMarker(marker);
+
+    function save(value) {
+      if (!value) return;
+      places = addLabelToPlaces(places, value, marker.getLngLat(), map.getZoom());
+      map.getSource('place').setData(places);
+    }
+  }
+
+  function editLabel(lngLat, oldLabelProps) {
+    const markerEditor = createMarkerEditor(map, save, oldLabelProps.name);
+
+    const marker = new maplibregl.Popup({closeButton: false});
+    marker.setDOMContent(markerEditor.element);
+    marker.setLngLat(lngLat);
+    marker.addTo(map);
+
+    markerEditor.setMarker(marker);
+
+    function save(value) {
+      places = editLabelInPlaces(oldLabelProps.labelId, places, value, marker.getLngLat(), map.getZoom());
+      map.getSource('place').setData(places);
+    }
+  }
+
+  function clearHighlights() {
+    fastLinesLayer.clear();
+    map.getSource('selected-nodes').setData({
+      type: 'FeatureCollection',
+      features: []
+    });
+    map.redraw();
+  }
+
+  function makeVisible(repository, location) {
+    map.flyTo(location);
+    map.once('moveend', () => {
+      drawBackgroundEdges(location.center, repository);
+    });
+  }
+
+  function getBackgroundNearPoint(point) {
+    const borderFeature = map.queryRenderedFeatures(point, { layers: ['polygon-layer'] });
+    return borderFeature[0]?.properties;
+  }
+
+  function drawBackgroundEdges(point, repo) {
+    const backgroundProperties = getBackgroundNearPoint(point);
+    if (!backgroundProperties) return;
+    const groupId = backgroundProperties.groupId;
+    if (groupId === undefined) return;
+
+    let complimentaryColor = getComplimentaryColor(backgroundProperties.fill);
+    fastLinesLayer.clear();
+    backgroundEdgesFetch?.cancel();
+    let isCancelled = false;
+    let highlightedNodes = {
+      type: 'FeatureCollection',
+      features: []
+    };
+    backgroundEdgesFetch = downloadGroupGraph(groupId).then(groupGraph => {
+      if (isCancelled) return;
+      let firstLevelLinks = [];
+      let primaryNodePosition;
+      groupGraph.forEachLink(link => {
+        if (link.data?.e) return; // external;
+        const fromGeo = groupGraph.getNode(link.fromId).data.l;
+        const toGeo = groupGraph.getNode(link.toId).data.l;
+
+        const from = maplibregl.MercatorCoordinate.fromLngLat(fromGeo);
+        const to = maplibregl.MercatorCoordinate.fromLngLat(toGeo);
+        const isFirstLevel = repo === link.fromId || repo === link.toId;
+        const line = {
+          from: [from.x, from.y],
+          to: [to.x, to.y],
+          color: isFirstLevel ? 0xffffffFF : complimentaryColor 
+        }
+        // delay first level links to be drawn last, so that they are on the top
+        if (isFirstLevel) {
+          firstLevelLinks.push(line);
+
+          if (!primaryNodePosition) {
+            primaryNodePosition = repo === link.fromId ? fromGeo : toGeo;
+            highlightedNodes.features.push({
+              type: 'Feature',
+              geometry: {type: 'Point', coordinates: primaryNodePosition},
+              properties: {color: primaryHighlightColor, name: repo, background: backgroundProperties.fill, textSize: 1.2}
+            });
+          } 
+          let otherName = repo === link.fromId ? link.toId : link.fromId;
+          // pick the other one too:
+          highlightedNodes.features.push({
+            type: 'Feature',
+            geometry: {type: 'Point', coordinates: repo === link.fromId ? toGeo : fromGeo},
+            properties: {color: secondaryHighlightColor, name: otherName, background: backgroundProperties.fill, textSize: 0.8}
+          });
+        } else fastLinesLayer.addLine(line);
+      });
+      firstLevelLinks.forEach(line => {
+        fastLinesLayer.addLine(line)
+      });
+      map.getSource('selected-nodes').setData(highlightedNodes);
+      map.redraw();
+    });
+    backgroundEdgesFetch.cancel = () => {isCancelled = true};
+  }
+
+  function findNearestCity(point) {
+    let width = 16;
+    let height = 16;
+    const features = map.queryRenderedFeatures([
+      [point.x - width / 2, point.y - height / 2],
+      [point.x + width / 2, point.y + height / 2]
+    ], { layers: ['circle-layer'] });
+    if (!features.length) return;
+    let distance = Infinity;
+    let nearestCity = null;
+    features.forEach(feature => {
+      let geometry = feature.geometry.coordinates;
+      let dx = geometry[0] - point.x;
+      let dy = geometry[1] - point.y;
+      let d = dx * dx + dy * dy;
+      if (d < distance) {
+        distance = d;
+        nearestCity = feature;
+      }
+    });
+    return nearestCity;
+  }
 }
 
 function getDefaultStyle() {
@@ -62,13 +234,35 @@ function getDefaultStyle() {
     zoom: 4,
     style: {
       version: 8,
-      glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+      glyphs: config.glyphsSource,
       sources: {
         'borders-source': { type: 'geojson', data: config.bordersSource, },
         'points-source': {
           type: 'vector',
-          url: config.vectorTilesSource,
+          tiles: [config.vectorTilesTiles],
+          minzoom: 4,
+          maxzoom: 7,
+          center: [-9.843750,4.213679,7],
+          bounds: [-54.781000,-47.422000,54.781000,47.422000]
         },
+        // 'points-source': {
+        //   type: 'vector',
+        //   url: config.vectorTilesSource,
+        // },
+        'place': { // this one loaded asynchronously, and merged with local storage data
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: []
+          }
+        },
+        'selected-nodes': {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [] 
+          }
+        }
       },
       layers: [
         {
@@ -94,23 +288,35 @@ function getDefaultStyle() {
           source: 'points-source',
           'source-layer': "points",
           filter: ['==', '$type', 'Point'],
-
-          // This makes it slow
-          // layout: {
-          //   'circle-sort-key': ['-', 0, ['get', 'size']],
-          // },
           paint: {
-            'circle-color': "rgba(205, 205, 205, 0.8)",
+            'circle-color': '#fff',
+            'circle-opacity': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              5,
+              0.1,
+              15,
+              0.9
+            ],
+            'circle-stroke-width': 1,
+            'circle-stroke-opacity': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              8,
+              0.0,
+              15,
+              0.9
+            ],
             'circle-radius': [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
+              'interpolate',
+              ['linear'],
+              ['zoom'],
               5,  // zoom is 5 (or less) -> circle radius will be 1
               ['*', ['get', 'size'], .1],
-              // 8, // zoom is 10 -> circle radius will be 5
-              // ['*', ['get', 'size'], .5],
               23, // zoom is 15 (or greater) -> circle radius will be 10
-              ['*', ['get', 'size'], 2.0],
+              ['*', ['get', 'size'], 1.5],
             ]
           }
         },
@@ -121,6 +327,7 @@ function getDefaultStyle() {
           'source-layer': 'points',
           filter: [">=", ["zoom"], 8],
           layout: {
+            'text-font': [ 'Roboto Condensed Regular' ],
             'text-field': ['slice', ['get', 'label'], ['+', ['index-of', '/', ['get', 'label']], 1]],
             'text-anchor': 'top',
             'text-max-width': 10,
@@ -140,31 +347,101 @@ function getDefaultStyle() {
           paint: {
             'text-color': '#FFF',
           },
-        }
-        // {
-        //   id: 'circle-layer',
-        //   type: 'circle',
-        //   source: 'points-source',
-        //   'source-layer': "points",
-        //   layout: {
-        //     'circle-sort-key': ['-', 0, ['get', 'size']],
-        //   },
-        //   paint: {
-        //     "circle-radius": [
-        //       "interpolate",
-        //       ["linear"],
-        //       ["zoom"],
-        //       5,  // zoom is 5 (or less) -> circle radius will be 1
-        //       ['*', ['get', 'size'], .1],
-        //       8, // zoom is 10 -> circle radius will be 5
-        //       ['*', ['get', 'size'], .5],
-        //       15, // zoom is 15 (or greater) -> circle radius will be 10
-        //       ['*', ['get', 'size'], 1.2],
-        //     ],
-        //     'circle-color': '#fFF', // Set the fill color of the circle
-        //     'circle-opacity': 0.8
-        //   },
-        // }
+        }, 
+        {
+          id: 'selected-nodes-layer',
+          type: 'circle',
+          source: 'selected-nodes',
+          paint: {
+            'circle-color': ['get', 'color'],
+          }
+        },
+        {
+          id: 'selected-nodes-labels-layer',
+          type: 'symbol',
+          source: 'selected-nodes',
+          layout: {
+            'text-font': [ 'Roboto Condensed Regular' ],
+            'text-field': ['get', 'name'],
+            'text-anchor': 'top',
+            'text-max-width': 10,
+            'symbol-sort-key': ['-', 0, ['get', 'textSize']],
+            'symbol-spacing': 500,
+            'text-offset': [0, 0.5],
+            'text-size': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              8,
+              ['/', ['get', 'size'], 4],
+              10,
+              ['+', ['get', 'size'], 8]
+            ],
+          },
+          paint: {
+            'text-color': '#fff',
+            'text-halo-color': ['get', 'color'],
+            'text-halo-width': 2,
+          },
+        },
+{
+    "id": "place-country-1",
+    minzoom: 1, 
+    maxzoom: 10,
+    type: "symbol",
+    source: "place",
+    "layout": {
+        "text-font": [ "Roboto Condensed Bold" ],
+        "text-size": [
+          "interpolate",
+          [ "cubic-bezier", 0.2, 0, 0.7, 1 ],
+          ["zoom"],
+          1,
+          [
+            "step",
+            ["get", "symbolzoom"], 11, 
+            4, 9, 
+            5, 8
+          ],
+          9,
+          [
+            "step",
+            ["get", "symbolzoom"], 22,
+            4, 19,
+            5, 17
+          ]
+        ],
+        'symbol-sort-key': ['get', 'symbolzoom'],
+        "text-field": "{name}",
+        "text-max-width": 6,
+        "text-line-height": 1.1,
+        "text-letter-spacing": 0,
+    },
+    "paint": {
+        "text-color": "hsl(240,14%,23%)",
+        "text-halo-color": "hsla(0,0%,100%,0.8)",
+        "text-halo-width": 1
+    },
+
+    filter: [">", "symbolzoom", 1],
+},
+{
+    "id": "place-country-0",
+    type: "symbol",
+    source: "place",
+    maxzoom: 1,
+    "layout": {
+        "text-font": [ "Roboto Condensed Bold" ],
+        "text-size": 14,
+        "text-field": "{name}",
+        "text-max-width": 6.25,
+    },
+    "paint": {
+        "text-color": "hsl(240,14%,23%)",
+        "text-halo-color": "hsla(0,0%,100%,0.8)",
+        "text-halo-width": 1
+    },
+},
       ]
     },
   };

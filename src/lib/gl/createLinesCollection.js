@@ -1,4 +1,3 @@
-import maplibregl from 'maplibre-gl';
 import {defineProgram, InstancedAttribute, ColorAttribute} from 'w-gl';
 
 
@@ -7,6 +6,7 @@ export function getCustomLayer(layerName = 'graph-edges') {
     id: layerName,
     type: 'custom',
     onAdd: function (map, gl) {
+      this.map = map;
       this.program = defineProgram({
         gl,
         vertex: `
@@ -43,24 +43,13 @@ void main() {
           ])
         }
       });
-      // let angle = Math.PI * 2 / 100;
-      // for (let i =0 ; i < 100; ++i) {
-      //   let x = Math.cos(angle * i);
-      //   let y = Math.sin(angle * i);
-      //   let from = maplibregl.MercatorCoordinate.fromLngLat({ lng: (Math.random() - 0.5) * 10, lat: y })
-      //   let to = maplibregl.MercatorCoordinate.fromLngLat({ lng: 0, lat: 0 })
-      //   this.program.add({
-      //     from: [from.x, from.y], 
-      //     to: [to.x, to.y],
-      //     color: 0x0000ff9f
-      //   })
-      // }
     },
     render: function (gl, matrix) {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        let zoom = this.map.getZoom();
         this.program.draw({
-          width: 0.000001,
+          width: 0.00005 / zoom,
           modelViewProjection: matrix,
         });
     },

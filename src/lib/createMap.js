@@ -5,46 +5,59 @@ import config from './config';
 import {getCustomLayer} from './gl/createLinesCollection.js';
 import downloadGroupGraph from './downloadGroupGraph.js';
 import getComplimentaryColor from './getComplimentaryColor';
-import createMarkerEditor from './createMarkerEditor';
-import {getPlaceLabels,  addLabelToPlaces, editLabelInPlaces} from './getPlaceLabels';
+import createLabelEditor from './label-editor/createLabelEditor';
 
 const primaryHighlightColor = '#bf2072';
 const secondaryHighlightColor = '#e56aaa';
 export default function createMap() {
-  const placeLabelLayers = ['place-country-1', 'place-country-0'];
   const map = new maplibregl.Map(getDefaultStyle());
   const fastLinesLayer = getCustomLayer();
   let backgroundEdgesFetch;
-  let places;
+  let labelEditor;
   // collection of labels.
 
   map.on('load', () => {
     map.addLayer(fastLinesLayer, 'circle-layer');
-    getPlaceLabels().then(loadedPlaces => {
-      map.getSource('place').setData(loadedPlaces)
-      places = loadedPlaces;
-    });
+    labelEditor = createLabelEditor(map);
   });
 
   map.on('contextmenu', (e) => {
     bus.fire('show-tooltip');
+    
     const contextMenuItems = { 
-      items: [{
-        text: 'Add label',
-        click: () => addLabel(e.lngLat)
-      }],
+      items: labelEditor.getContextMenuItems(e),
       left: e.point.x + 'px', 
       top: e.point.y + 'px' 
     };
-
-    const labelFeature = map.queryRenderedFeatures(e.point, { layers: placeLabelLayers });
-    if (labelFeature.length) {
-      const label = labelFeature[0].properties;
+    let bg = getBackgroundNearPoint(e.point);
+    if (bg) {
       contextMenuItems.items.push({
-        text: `Edit ${label.name}`,
-        click: () => editLabel(labelFeature[0].geometry.coordinates, label)
+        text: 'Show largest projects',
+        click: () => {
+          let seen = new Map();
+          let largeRepositories = map.querySourceFeatures('points-source', {
+              sourceLayer: 'points',
+              filter: ['==', 'parent', bg.groupId]
+          }).sort((a, b) => {
+            return b.properties.size - a.properties.size;
+          });
+          for (let repo of largeRepositories) {
+            let v = {
+              name: repo.properties.label,
+              lngLat: repo.geometry.coordinates,
+            }
+            if (seen.has(repo.properties.label)) continue;
+            seen.set(repo.properties.label, v);
+            if (seen.size >= 100) break;
+          }
+          
+          let largest = Array.from(seen.values()); 
+          console.log(largest);
+          bus.fire('show-largest', largest);
+        }
       });
     }
+
 
     bus.fire('show-context-menu', contextMenuItems);
   });
@@ -87,38 +100,6 @@ export default function createMap() {
     clearHighlights,
   }
 
-  function addLabel(lngLat) {
-    const markerEditor = createMarkerEditor(map, save);
-
-    const marker = new maplibregl.Popup({closeButton: false});
-    marker.setDOMContent(markerEditor.element);
-    marker.setLngLat(lngLat);
-    marker.addTo(map);
-
-    markerEditor.setMarker(marker);
-
-    function save(value) {
-      if (!value) return;
-      places = addLabelToPlaces(places, value, marker.getLngLat(), map.getZoom());
-      map.getSource('place').setData(places);
-    }
-  }
-
-  function editLabel(lngLat, oldLabelProps) {
-    const markerEditor = createMarkerEditor(map, save, oldLabelProps.name);
-
-    const marker = new maplibregl.Popup({closeButton: false});
-    marker.setDOMContent(markerEditor.element);
-    marker.setLngLat(lngLat);
-    marker.addTo(map);
-
-    markerEditor.setMarker(marker);
-
-    function save(value) {
-      places = editLabelInPlaces(oldLabelProps.labelId, places, value, marker.getLngLat(), map.getZoom());
-      map.getSource('place').setData(places);
-    }
-  }
 
   function clearHighlights() {
     fastLinesLayer.clear();
@@ -384,6 +365,7 @@ function getDefaultStyle() {
             'text-halo-width': 2,
           },
         },
+        // TODO: move labels stuff to label editor?
 {
     "id": "place-country-1",
     minzoom: 1, 

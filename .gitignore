@@ -28,3 +28,5 @@ coverage
 *.sw?
 
 *.geojson
+public/names
+public/graphs

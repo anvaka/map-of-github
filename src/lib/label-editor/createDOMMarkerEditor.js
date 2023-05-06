@@ -1,5 +1,5 @@
 
-export default function createMarkerEditor(map, onSave, defaultText) {
+export default function createDOMarkerEditor(map, onSave, defaultText) {
   const element = document.createElement('div');
   element.className = 'label-marker';
   element.innerHTML = `<form class="mini-label">
@@ -12,7 +12,7 @@ export default function createMarkerEditor(map, onSave, defaultText) {
 
   if (defaultText) element.querySelector('input').value = defaultText;
 
-  let marker; // maplibregl.Popup
+  let marker; 
   let startX = 0;
   let startY = 0;
   let dx = 0, dy = 0;

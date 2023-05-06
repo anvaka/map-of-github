@@ -2,6 +2,7 @@
 import {ref, onBeforeUnmount, onBeforeMount} from 'vue';
 import TypeAhead from './components/TypeAhead.vue';
 import GithubRepository from './components/GithubRepository.vue';
+import LargestRepositories from './components/LargestRepositories.vue';
 import bus from './lib/bus'
 
 import createMap from './lib/createMap';
@@ -12,6 +13,7 @@ let sidebarVisible = ref(false);
 let currentProject = ref(''); 
 let tooltip = ref(null);
 let contextMenu = ref(null);
+let largestRepositories = ref(null);
 let lastSelected;
 
 function onTypeAheadInput() {
@@ -61,17 +63,24 @@ onBeforeUnmount(() => {
   bus.off('repo-selected', onRepoSelected);
   bus.off('show-tooltip', onShowTooltip);
   bus.off('show-context-menu', onShowContextMenu);
+  bus.off('show-largest', onShowLargest);
 })
 
 onBeforeMount(() => {
   bus.on('repo-selected', onRepoSelected);
   bus.on('show-context-menu', onShowContextMenu);
   bus.on('show-tooltip', onShowTooltip);
+  bus.on('show-largest', onShowLargest);
 });
 
 function doContextMenuAction(menuItem) {
   contextMenu.value = null;
   menuItem.click();
+}
+
+
+function onShowLargest(largest) {
+  largestRepositories.value = largest;
 }
 
 </script>
@@ -91,6 +100,11 @@ function doContextMenuAction(menuItem) {
         :query="currentProject"
       ></type-ahead>
     </form>
+    <largest-repositories :repos="largestRepositories" v-if="largestRepositories"
+    class="largest-repositories"
+      @selected="findProject"
+      @close="largestRepositories = null"
+    ></largest-repositories>
     <div class="tooltip" v-if="tooltip" :style="{left: tooltip.left, top: tooltip.top, background: tooltip.background}">{{ tooltip.text }}</div>
     <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
       <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
@@ -123,6 +137,17 @@ function doContextMenuAction(menuItem) {
   transform: translate(-50%, calc(-100% - 12px));
 }
 
+.largest-repositories {
+  position: fixed;
+  right: 0;
+  padding: 8px;
+  background: var(--color-background);
+  height: 100%;
+  bottom: 0;
+  max-width: 400px;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border);
+}
 .context-menu {
   position: absolute;
   background: var(--color-background-soft);

@@ -44,7 +44,7 @@ const promptMessage = computed(() => {
       <line x1="15" y1="9" x2="9" y2="15"></line>
       <line x1="9" y1="9" x2="15" y2="15"></line>
     </svg>
-  </a>In this country:</h2>
+  </a>In this country</h2>
       <ul v-if="props.repos.length">
         <li v-for="repo in props.repos" :key="repo.name">
           <a :href="getLink(repo)" @click.prevent="showDetails(repo)" target="_blank">{{repo.name}}</a>
@@ -64,6 +64,9 @@ const promptMessage = computed(() => {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+h2 {
+  margin-bottom: 4px
 }
 
 ul {

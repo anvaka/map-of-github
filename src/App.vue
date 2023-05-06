@@ -1,5 +1,5 @@
 <script setup>
-import {ref, onBeforeUnmount, onBeforeMount} from 'vue';
+import {ref, onBeforeUnmount, onBeforeMount, computed} from 'vue';
 import TypeAhead from './components/TypeAhead.vue';
 import GithubRepository from './components/GithubRepository.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
@@ -8,12 +8,14 @@ import bus from './lib/bus'
 import createMap from './lib/createMap';
 
 let mapOwner = createMap();
+const SM_SCREEN_BREAKPOINT = 600;
 
 let sidebarVisible = ref(false);
 let currentProject = ref(''); 
 let tooltip = ref(null);
 let contextMenu = ref(null);
 let largestRepositories = ref(null);
+let isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
 let lastSelected;
 
 function onTypeAheadInput() {
@@ -64,6 +66,7 @@ onBeforeUnmount(() => {
   bus.off('show-tooltip', onShowTooltip);
   bus.off('show-context-menu', onShowContextMenu);
   bus.off('show-largest', onShowLargest);
+  window.removeEventListener('resize', onResize);
 })
 
 onBeforeMount(() => {
@@ -71,7 +74,12 @@ onBeforeMount(() => {
   bus.on('show-context-menu', onShowContextMenu);
   bus.on('show-tooltip', onShowTooltip);
   bus.on('show-largest', onShowLargest);
+  window.addEventListener('resize', onResize);
 });
+
+function onResize() {
+  isSmallScreen.value = window.innerWidth < SM_SCREEN_BREAKPOINT;
+}
 
 function doContextMenuAction(menuItem) {
   contextMenu.value = null;
@@ -83,12 +91,21 @@ function onShowLargest(largest) {
   largestRepositories.value = largest;
 }
 
+const typeAheadVisible = computed(() => {
+  return !(isSmallScreen.value && largestRepositories.value && !currentProject.value);
+});
+
 </script>
 
 <template>
   <div>
+    <largest-repositories :repos="largestRepositories" v-if="largestRepositories"
+      class="largest-repositories"
+      @selected="findProject"
+      @close="largestRepositories = null"
+    ></largest-repositories>
     <github-repository :name="currentProject" v-if="currentProject"></github-repository>
-    <form @submit.prevent="onSubmit" class="search-box">
+    <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
       <type-ahead
         placeholder="Find Project"
         @menuClicked='sidebarVisible = true'
@@ -100,11 +117,6 @@ function onShowLargest(largest) {
         :query="currentProject"
       ></type-ahead>
     </form>
-    <largest-repositories :repos="largestRepositories" v-if="largestRepositories"
-    class="largest-repositories"
-      @selected="findProject"
-      @close="largestRepositories = null"
-    ></largest-repositories>
     <div class="tooltip" v-if="tooltip" :style="{left: tooltip.left, top: tooltip.top, background: tooltip.background}">{{ tooltip.text }}</div>
     <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
       <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
@@ -122,7 +134,7 @@ function onShowLargest(largest) {
   padding: 0;
   cursor: text;
   left: 8px;
-  width: var(--side-panel-width);
+  width: calc(var(--side-panel-width) - 8px);
 }
 .tooltip {
   position: absolute;
@@ -172,6 +184,23 @@ function onShowLargest(largest) {
   background: var(--color-background);
   border-right: 1px solid var(--color-border);
 }
-@media (min-width: 1024px) {
+@media (max-width: 800px) {
+  .repo-viewer, .search-box, .largest-repositories {
+    width: 45vw;
+  }
 }
+@media (max-width: 600px) {
+  .repo-viewer {
+    width: 100%;
+  }
+  .search-box {
+    left: 0;
+    margin-top: 0;
+    width: 100%;
+  }
+  .largest-repositories {
+    width: 100%;
+  }
+}
+
 </style>

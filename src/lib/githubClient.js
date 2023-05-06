@@ -15,6 +15,7 @@ const readmeFilesFormat = [
 const rawGithubUrl = 'https://raw.githubusercontent.com/';
 const headers = {Accept: 'application/vnd.github.v3+json'}
 let currentUser;
+let cachedRepositories = new Map();
 
 if (document.cookie.includes('github_token')) {
   headers['Authorization'] = 'Bearer ' + document.cookie.split('github_token=')[1].split(';')[0];
@@ -39,6 +40,9 @@ export async function getCurrentUser() {
 }
 
 export async function getRepoInfo(repoName) {
+  if (cachedRepositories.has(repoName)) {
+    return cachedRepositories.get(repoName);
+  }
   const response = await fetch(`https://api.github.com/repos/${repoName}`, {headers});
   if (!response.ok) {
     if (response.headers.get('x-ratelimit-remaining') === '0') {
@@ -58,7 +62,7 @@ export async function getRepoInfo(repoName) {
   }
   const data = await response.json();
   const remainingRequests = response.headers.get('x-ratelimit-remaining');
-  return {
+  const repository = {
     state: 'LOADED',
     name: data.name,
     description: data.description,
@@ -72,6 +76,8 @@ export async function getRepoInfo(repoName) {
     updated_at: new Date(data.updated_at).toLocaleDateString(),
     remainingRequests
   };
+  cachedRepositories.set(repoName, repository);
+  return repository;
 }
 
 export async function getReadme(repoName, default_branch) {

@@ -1,5 +1,4 @@
 // import createGraph from 'ngraph.graph';
-import fromDot from 'ngraph.fromdot';
 import config from './config';
 
 const graphsCache = new Map();
@@ -12,7 +11,9 @@ export default async function downloadGroupGraph(groupId) {
 
   let response = await fetch(`${config.graphsEndpoint}/${groupId}.graph.dot`);
   let text = await response.text();
-  let graph = fromDot(text);
+
+  let fromDot = await import('ngraph.fromdot');
+  let graph = fromDot.default(text);
   graph.forEachNode(node => {
     node.data.l = node.data.l.split(',').map(x => +x);
   })

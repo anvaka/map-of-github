@@ -6,9 +6,6 @@ import SmallPreview from './components/SmallPreview.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
 import bus from './lib/bus'
 
-import createMap from './lib/createMap';
-
-const mapOwner = createMap();
 const SM_SCREEN_BREAKPOINT = 600;
 
 const sidebarVisible = ref(false);
@@ -27,7 +24,7 @@ function closeSideBarViewer() {
   sidebarVisible.value = false;
   currentProject.value = '';
   smallPreviewName.value = '';
-  mapOwner.clearHighlights();
+  window.mapOwner?.clearHighlights();
 }
 
 function closeSideBarOnSmallScreen() {
@@ -44,7 +41,7 @@ function findProject(x) {
     center: [x.lat, x.lon],
     zoom: 12,
   }
-  mapOwner.makeVisible(x.text, location);
+  window.mapOwner?.makeVisible(x.text, location);
   currentProject.value = x.text;
 }
 
@@ -73,9 +70,7 @@ function onShowContextMenu(newContextMenu) {
 }
 
 onBeforeUnmount(() => {
-  if (mapOwner) {
-    mapOwner.dispose();
-  }
+  window.mapOwner?.dispose();
   bus.off('repo-selected', onRepoSelected);
   bus.off('show-tooltip', onShowTooltip);
   bus.off('show-context-menu', onShowContextMenu);

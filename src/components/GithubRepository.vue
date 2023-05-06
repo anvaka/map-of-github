@@ -247,37 +247,41 @@ h2 a {
   color: var(--critical-call-to-action);
 }
 
-.readme-content {
-  border-top: 1px solid var(--color-border);
-  margin-top: 12px;
-  padding-top: 8px;
-  overflow-x: hidden;
-}
-.readme-content >>> a {
-  color: var(--color-link-hover);
-}
-.readme-content >>> p {
-  margin-bottom: 16px;
-  margin-top: 0;
-}
-.readme-content >>> h1 {
-  border-bottom: 1px solid var(--color-border);
-}
-.readme-content >>> pre {
-  padding: 16px;
-    overflow: auto;
-    font-size: 85%;
-    line-height: 1.45;
-    border-radius: 6px;
-}
-.readme-content >>> img {
-  max-width: 100%;
-}
 
 @media (min-width: 1024px) {
   .greetings h1,
   .greetings h3 {
     text-align: left;
   }
+}
+</style>
+
+
+<style>
+.readme-content {
+  border-top: 1px solid var(--color-border);
+  margin-top: 12px;
+  padding-top: 8px;
+  overflow-x: hidden;
+}
+.readme-content a {
+  color: var(--color-link-hover);
+}
+.readme-content p {
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+.readme-content h1 {
+  border-bottom: 1px solid var(--color-border);
+}
+.readme-content pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  border-radius: 6px;
+}
+.readme-content img {
+  max-width: 100%;
 }
 </style>

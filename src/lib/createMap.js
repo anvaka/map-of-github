@@ -9,6 +9,7 @@ import createLabelEditor from './label-editor/createLabelEditor';
 
 const primaryHighlightColor = '#bf2072';
 const secondaryHighlightColor = '#e56aaa';
+
 export default function createMap() {
   const map = new maplibregl.Map(getDefaultStyle());
   map.dragRotate.disable();

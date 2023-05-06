@@ -52,7 +52,7 @@ export function editLabelInPlaces(labelId, places, value, lngLat, mapZoomLevel) 
 }
 
 function mergePlacesWithLocalStorage() {
-  const savedPlaces = JSON.parse(localStorage.getItem('places') || '{type: "FeatureCollection", features: []}');
+  const savedPlaces = JSON.parse(localStorage.getItem('places')) || {type: "FeatureCollection", features: []};
   for (const savedPlace of savedPlaces.features) {
     const placeKey = savedPlace.properties.labelId;
     const place = indexedPlaces.get(placeKey);

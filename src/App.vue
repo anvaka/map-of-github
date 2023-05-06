@@ -2,20 +2,22 @@
 import {ref, onBeforeUnmount, onBeforeMount, computed} from 'vue';
 import TypeAhead from './components/TypeAhead.vue';
 import GithubRepository from './components/GithubRepository.vue';
+import SmallPreview from './components/SmallPreview.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
 import bus from './lib/bus'
 
 import createMap from './lib/createMap';
 
-let mapOwner = createMap();
+const mapOwner = createMap();
 const SM_SCREEN_BREAKPOINT = 600;
 
-let sidebarVisible = ref(false);
-let currentProject = ref(''); 
-let tooltip = ref(null);
-let contextMenu = ref(null);
-let largestRepositories = ref(null);
-let isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
+const sidebarVisible = ref(false);
+const currentProject = ref(''); 
+const smallPreviewName = ref('');
+const tooltip = ref(null);
+const contextMenu = ref(null);
+const largestRepositoriesList = ref(null);
+const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
 let lastSelected;
 
 function onTypeAheadInput() {
@@ -24,6 +26,7 @@ function onTypeAheadInput() {
 function closeSideBarViewer() {
   sidebarVisible.value = false;
   currentProject.value = '';
+  smallPreviewName.value = '';
   mapOwner.clearHighlights();
 }
 
@@ -47,7 +50,18 @@ function findProject(x) {
 
 function onRepoSelected(repo) {
   lastSelected = repo;
-  currentProject.value = repo.text;
+  if (isSmallScreen.value) {
+    // move panel to the bottom
+    smallPreviewName.value = repo.text;
+    currentProject.value = null;
+  } else {
+    currentProject.value = repo.text;
+  }
+}
+
+function showFullPreview() {
+  smallPreviewName.value = null;
+  currentProject.value = lastSelected.text;
 }
 
 function onShowTooltip(newTooltip) {
@@ -88,21 +102,21 @@ function doContextMenuAction(menuItem) {
 
 
 function onShowLargest(largest) {
-  largestRepositories.value = largest;
+  largestRepositoriesList.value = largest;
 }
 
 const typeAheadVisible = computed(() => {
-  return !(isSmallScreen.value && largestRepositories.value && !currentProject.value);
+  return !(isSmallScreen.value && largestRepositoriesList.value && !currentProject.value);
 });
 
 </script>
 
 <template>
   <div>
-    <largest-repositories :repos="largestRepositories" v-if="largestRepositories"
+    <largest-repositories :repos="largestRepositoriesList" v-if="largestRepositoriesList"
       class="largest-repositories"
       @selected="findProject"
-      @close="largestRepositories = null"
+      @close="largestRepositoriesList = null"
     ></largest-repositories>
     <github-repository :name="currentProject" v-if="currentProject"></github-repository>
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
@@ -117,6 +131,9 @@ const typeAheadVisible = computed(() => {
         :query="currentProject"
       ></type-ahead>
     </form>
+    <transition name='slide-bottom'>
+      <small-preview v-if="smallPreviewName" :name="smallPreviewName" class="small-preview" @showFullPreview="showFullPreview()"></small-preview>
+    </transition>
     <div class="tooltip" v-if="tooltip" :style="{left: tooltip.left, top: tooltip.top, background: tooltip.background}">{{ tooltip.text }}</div>
     <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
       <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
@@ -184,6 +201,22 @@ const typeAheadVisible = computed(() => {
   background: var(--color-background);
   border-right: 1px solid var(--color-border);
 }
+.slide-bottom-enter-active, .slide-bottom-leave-active {
+  transition: transform .3s cubic-bezier(0,0,0.58,1);
+}
+.slide-bottom-enter, .slide-bottom-leave-to {
+  transform: translateY(84px);
+}
+.small-preview {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 84px;
+  background: var(--color-background);
+  box-shadow: 0 -4px 4px rgba(0,0,0,0.42);
+}
+
 @media (max-width: 800px) {
   .repo-viewer, .search-box, .largest-repositories {
     width: 45vw;

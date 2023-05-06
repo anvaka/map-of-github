@@ -326,7 +326,6 @@ img.avatar {
   margin: 0;
   border-top: 1px solid var(--color-border);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
 }
 
 .suggestions .searching {

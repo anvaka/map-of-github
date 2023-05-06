@@ -144,9 +144,11 @@ function onShowLargest(largest) {
   background: var(--color-background);
   height: 100%;
   bottom: 0;
-  max-width: 400px;
-  overflow-y: auto;
+  width: 400px;
+  overflow: hidden;
   border-left: 1px solid var(--color-border);
+  display: grid;
+  grid-template-rows: minmax(0, 40%) minmax(0, 60%);
 }
 .context-menu {
   position: absolute;

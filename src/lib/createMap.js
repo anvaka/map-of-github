@@ -51,9 +51,7 @@ export default function createMap() {
             if (seen.size >= 100) break;
           }
           
-          let largest = Array.from(seen.values()); 
-          console.log(largest);
-          bus.fire('show-largest', largest);
+          bus.fire('show-largest', Array.from(seen.values()));
         }
       });
     }

@@ -1,4 +1,5 @@
 import config from '../config'
+import generateShortRandomId from '../generateShortRandomId';
 
 let originalPlaces;
 let indexedPlaces = new Map();
@@ -19,8 +20,8 @@ function savePlaceLabels(places) {
 }
 
 export function addLabelToPlaces(places, value, lngLat, mapZoomLevel) {
-  let labelId = generateShortId();
-  while (indexedPlaces.has(labelId)) labelId = generateShortId();
+  let labelId = generateShortRandomId();
+  while (indexedPlaces.has(labelId)) labelId = generateShortRandomId();
 
   const label = {
     type: 'Feature',
@@ -69,8 +70,4 @@ function mergePlacesWithLocalStorage() {
     type: "FeatureCollection",
     features: Array.from(indexedPlaces.values())
   };
-}
-
-function generateShortId() {
-  return Math.random().toString(36).substr(2, 5);
 }

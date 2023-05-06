@@ -8,6 +8,14 @@
   color: var(--critical-call-to-action);
 }
 
+a.critical {
+  color: var(--critical-call-to-action);
+}
+
+a.normal {
+  color: var(--color-link-hover);
+}
+
 a {
   text-decoration: none;
   transition: 0.4s;

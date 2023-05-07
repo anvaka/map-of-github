@@ -40,7 +40,7 @@ export default function createMap() {
           let seen = new Map();
           let largeRepositories = map.querySourceFeatures('points-source', {
               sourceLayer: 'points',
-              filter: ['==', 'parent', bg.groupId]
+              filter: ['==', 'parent', bg.id]
           }).sort((a, b) => {
             return b.properties.size - a.properties.size;
           });
@@ -54,6 +54,8 @@ export default function createMap() {
             if (seen.size >= 100) break;
           }
           
+          map.setFilter('border-highlight', ['==', ['id'], bg.id]);
+          map.setLayoutProperty('border-highlight', 'visibility', 'visible');
           bus.fire('show-largest', Array.from(seen.values()));
         }
       });
@@ -66,12 +68,12 @@ export default function createMap() {
   map.on('mousemove', (e) => {
     // let hoveredFeature = findNearestCity(e.point);
     // if (hoveredFeature) {
-    //   const backgroundProperties = getBackgroundNearPoint(e.point);
+    //   const bgFeature = getBackgroundNearPoint(e.point);
     //   bus.fire('show-tooltip', { 
     //     text: hoveredFeature.properties.label, 
     //     left: e.point.x + 'px',
     //     top: e.point.y + 'px',
-    //     background: backgroundProperties?.fill || 'rgba(0,0,0,0.5)',
+    //     background: bgFeature?.properties?.fill || 'rgba(0,0,0,0.5)',
     //   });
     // } else {
     //   bus.fire('show-tooltip');
@@ -99,8 +101,12 @@ export default function createMap() {
     },
     makeVisible,
     clearHighlights,
+    clearBorderHighlights,
   }
 
+  function clearBorderHighlights() {
+    map.setLayoutProperty('border-highlight', 'visibility', 'none');
+  }
 
   function clearHighlights() {
     fastLinesLayer.clear();
@@ -120,16 +126,17 @@ export default function createMap() {
 
   function getBackgroundNearPoint(point) {
     const borderFeature = map.queryRenderedFeatures(point, { layers: ['polygon-layer'] });
-    return borderFeature[0]?.properties;
+    return borderFeature[0];
   }
 
   function drawBackgroundEdges(point, repo) {
-    const backgroundProperties = getBackgroundNearPoint(point);
-    if (!backgroundProperties) return;
-    const groupId = backgroundProperties.groupId;
+    const bgFeature = getBackgroundNearPoint(point);
+    if (!bgFeature) return;
+    const groupId = bgFeature.id;
     if (groupId === undefined) return;
 
-    let complimentaryColor = getComplimentaryColor(backgroundProperties.fill);
+    const fillColor = bgFeature.properties.fill;
+    let complimentaryColor = getComplimentaryColor(fillColor);
     fastLinesLayer.clear();
     backgroundEdgesFetch?.cancel();
     let isCancelled = false;
@@ -137,6 +144,7 @@ export default function createMap() {
       type: 'FeatureCollection',
       features: []
     };
+
     backgroundEdgesFetch = downloadGroupGraph(groupId).then(groupGraph => {
       if (isCancelled) return;
       let firstLevelLinks = [];
@@ -163,7 +171,7 @@ export default function createMap() {
             highlightedNodes.features.push({
               type: 'Feature',
               geometry: {type: 'Point', coordinates: primaryNodePosition},
-              properties: {color: primaryHighlightColor, name: repo, background: backgroundProperties.fill, textSize: 1.2}
+              properties: {color: primaryHighlightColor, name: repo, background: fillColor, textSize: 1.2}
             });
           } 
           let otherName = repo === link.fromId ? link.toId : link.fromId;
@@ -171,7 +179,7 @@ export default function createMap() {
           highlightedNodes.features.push({
             type: 'Feature',
             geometry: {type: 'Point', coordinates: repo === link.fromId ? toGeo : fromGeo},
-            properties: {color: secondaryHighlightColor, name: otherName, background: backgroundProperties.fill, textSize: 0.8}
+            properties: {color: secondaryHighlightColor, name: otherName, background: fillColor, textSize: 0.8}
           });
         } else fastLinesLayer.addLine(line);
       });
@@ -261,7 +269,25 @@ function getDefaultStyle() {
           filter: ['==', '$type', 'Polygon'],
           'paint': {
             'fill-color': ['get', 'fill'],
+            // 'fill-outline-color': [
+            //   'case',
+            //   ['boolean', ['feature-state', 'open'], false],
+            //   '#FFF',
+            //   'rgba(0,0,0,0)'
+            // ],
             // 'fill-outline-color': '#FFF',
+          }
+        },
+        {
+          'id': 'border-highlight',
+          'type': 'line',
+          'source': 'borders-source',
+          'layout': {
+            'visibility': 'none'
+          },
+          'paint': {
+            'line-color': '#FFF',
+            'line-width': 4,
           }
         },
         {

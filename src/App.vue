@@ -100,9 +100,15 @@ function onShowLargest(largest) {
   largestRepositoriesList.value = largest;
 }
 
+function closeLargestRepositories() {
+  largestRepositoriesList.value = null
+  window.mapOwner?.clearBorderHighlights();
+}
+
 const typeAheadVisible = computed(() => {
   return !(isSmallScreen.value && largestRepositoriesList.value && !currentProject.value);
 });
+
 
 </script>
 
@@ -111,7 +117,7 @@ const typeAheadVisible = computed(() => {
     <largest-repositories :repos="largestRepositoriesList" v-if="largestRepositoriesList"
       class="largest-repositories"
       @selected="findProject"
-      @close="largestRepositoriesList = null"
+      @close="closeLargestRepositories()"
     ></largest-repositories>
     <github-repository :name="currentProject" v-if="currentProject"></github-repository>
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">

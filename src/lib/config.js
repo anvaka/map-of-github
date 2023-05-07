@@ -1,14 +1,16 @@
-// const server = 'http://192.168.86.79:8081/';
-const server = 'http://localhost:8081/';
+const hostName = window.location.hostname;
+const isDev = hostName !== 'anvaka.github.io';
+const server = isDev ? `http://${hostName}:8081/` : 'https://anvaka.github.io/map-of-github-data/';
+const version = 'v1';
 
 export default {
   serverUrl: '',
   // vectorTilesSource: 'http://192.168.86.79:8082/data/cities.json',
-  vectorTilesTiles: `${server}v1/points/{z}/{x}/{y}.pbf`,
+  vectorTilesTiles: `${server}${version}/points/{z}/{x}/{y}.pbf`,
   glyphsSource: `${server}/fonts/{fontstack}/{range}.pbf`,
-  bordersSource: `${server}v1/borders.geojson`,
-  placesSource: `${server}v1/places.geojson`,
+  bordersSource: `${server}${version}/borders.geojson`,
+  placesSource: `${server}${version}/places.geojson`,
 
-  namesEndpoint: `${server}v1/names`,
-  graphsEndpoint: `${server}v1/graphs`,
+  namesEndpoint: `${server}${version}/names`,
+  graphsEndpoint: `${server}${version}/graphs`,
 };

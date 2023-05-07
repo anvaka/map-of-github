@@ -72,6 +72,14 @@ function mergePlacesWithLocalStorage() {
     }
   }
 
+  indexedPlaces.forEach((place, placeKey) => {
+    if (!mergeIndex.has(placeKey)) {
+      // remote only:
+      mergeIndex.set(placeKey, place);
+    }
+  });
+
+
   return {
     type: "FeatureCollection",
     features: Array.from(mergeIndex.values())

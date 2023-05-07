@@ -1,5 +1,6 @@
 import config from '../config'
 import generateShortRandomId from '../generateShortRandomId';
+import bus from '../bus';
 
 let originalPlaces;
 let indexedPlaces = new Map();
@@ -11,7 +12,12 @@ export async function getPlaceLabels() {
     indexedPlaces.set(f.properties.labelId, f);
   });
 
-  return mergePlacesWithLocalStorage(originalPlaces);
+  const mergedLabels = mergePlacesWithLocalStorage(originalPlaces);
+  const hasChanges = checkOriginalPlacesForChanges(mergedLabels);
+  if (hasChanges) {
+    bus.fire('unsaved-changes-detected', hasChanges);
+  }
+  return mergedLabels;
 }
 
 function savePlaceLabels(places) {
@@ -53,21 +59,37 @@ export function editLabelInPlaces(labelId, places, value, lngLat, mapZoomLevel) 
 
 function mergePlacesWithLocalStorage() {
   const savedPlaces = JSON.parse(localStorage.getItem('places')) || {type: "FeatureCollection", features: []};
+  let mergeIndex = new Map();
   for (const savedPlace of savedPlaces.features) {
     const placeKey = savedPlace.properties.labelId;
-    const place = indexedPlaces.get(placeKey);
+    const place = mergeIndex.get(placeKey);
     if (place) {
       // local override:
-      Object.assign(place, savedPlace);
-      indexedPlaces.set(placeKey, place);
+      mergeIndex.set(placeKey, Object.assign({}, place, savedPlace));
     } else {
       // local only:
-      indexedPlaces.set(placeKey, savedPlace);
+      mergeIndex.set(placeKey, savedPlace);
     }
   }
 
   return {
     type: "FeatureCollection",
-    features: Array.from(indexedPlaces.values())
+    features: Array.from(mergeIndex.values())
   };
+}
+
+function checkOriginalPlacesForChanges(mergedPlaces) {
+  if (!originalPlaces) return false;
+
+  for (const resolvedPlace of mergedPlaces.features) {
+    const placeKey = resolvedPlace.properties.labelId;
+    const place = indexedPlaces.get(placeKey);
+    if (!place) return true;
+    if (place.properties.name !== resolvedPlace.properties.name) return true;
+    if (place.properties.symbolzoom !== resolvedPlace.properties.symbolzoom) return true; 
+    if (place.geometry.coordinates[0] !== resolvedPlace.geometry.coordinates[0]) return true;
+    if (place.geometry.coordinates[1] !== resolvedPlace.geometry.coordinates[1]) return true; 
+  }
+
+  return false;
 }

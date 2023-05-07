@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import {getPlaceLabels,  addLabelToPlaces, editLabelInPlaces} from './labelsStorage';
 import createMarkerEditor from './createDOMMarkerEditor';
+import bus from '../bus';
 
 export default function createLabelEditor(map) {
   let places;
@@ -12,7 +13,8 @@ export default function createLabelEditor(map) {
   });
 
   return {
-    getContextMenuItems
+    getContextMenuItems,
+    getPlaces: () => places
   }
 
   function getContextMenuItems(e) {
@@ -48,6 +50,7 @@ export default function createLabelEditor(map) {
       if (!value) return;
       places = addLabelToPlaces(places, value, marker.getLngLat(), map.getZoom());
       map.getSource('place').setData(places);
+      bus.fire('unsaved-changes-detected', true);
     }
   }
 
@@ -64,6 +67,7 @@ export default function createLabelEditor(map) {
     function save(value) {
       places = editLabelInPlaces(oldLabelProps.labelId, places, value, marker.getLngLat(), map.getZoom());
       map.getSource('place').setData(places);
+      bus.fire('unsaved-changes-detected', true);
     }
   }
 }

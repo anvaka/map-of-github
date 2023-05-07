@@ -102,6 +102,11 @@ export default function createMap() {
     makeVisible,
     clearHighlights,
     clearBorderHighlights,
+    getPlacesGeoJSON,
+  }
+
+  function getPlacesGeoJSON() {
+    return labelEditor.getPlaces();
   }
 
   function clearBorderHighlights() {
@@ -235,10 +240,6 @@ function getDefaultStyle() {
           center: [-9.843750,4.213679,7],
           bounds: [-54.781000,-47.422000,54.781000,47.422000]
         },
-        // 'points-source': {
-        //   type: 'vector',
-        //   url: config.vectorTilesSource,
-        // },
         'place': { // this one loaded asynchronously, and merged with local storage data
           type: 'geojson',
           data: {

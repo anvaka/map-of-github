@@ -4,7 +4,9 @@ import TypeAhead from './components/TypeAhead.vue';
 import GithubRepository from './components/GithubRepository.vue';
 import SmallPreview from './components/SmallPreview.vue';
 import About from './components/About.vue';
+import UnsavedChanges from './components/UnsavedChanges.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
+
 import bus from './lib/bus'
 
 const SM_SCREEN_BREAKPOINT = 600;
@@ -16,6 +18,8 @@ const tooltip = ref(null);
 const contextMenu = ref(null);
 const aboutVisible = ref(false);
 const largestRepositoriesList = ref(null);
+const unsavedChangesVisible = ref(false);
+const hasUnsavedChanges = ref(false);
 const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
 let lastSelected;
 
@@ -77,6 +81,7 @@ onBeforeUnmount(() => {
   bus.off('show-tooltip', onShowTooltip);
   bus.off('show-context-menu', onShowContextMenu);
   bus.off('show-largest', onShowLargest);
+  bus.off('unsaved-changes-detected', onUnsavedChangesDetected);
   window.removeEventListener('resize', onResize);
 })
 
@@ -85,6 +90,7 @@ onBeforeMount(() => {
   bus.on('show-context-menu', onShowContextMenu);
   bus.on('show-tooltip', onShowTooltip);
   bus.on('show-largest', onShowLargest);
+  bus.on('unsaved-changes-detected', onUnsavedChangesDetected);
   window.addEventListener('resize', onResize);
 });
 
@@ -102,6 +108,10 @@ function onShowLargest(largest) {
   largestRepositoriesList.value = largest;
 }
 
+function onUnsavedChangesDetected(hasChanges) {
+  hasUnsavedChanges.value = hasChanges;
+}
+
 function closeLargestRepositories() {
   largestRepositoriesList.value = null
   window.mapOwner?.clearBorderHighlights();
@@ -111,11 +121,17 @@ const typeAheadVisible = computed(() => {
   return !(isSmallScreen.value && largestRepositoriesList.value && !currentProject.value);
 });
 
+function showUnsavedChanges() {
+  unsavedChangesVisible.value = true;
+}
 
 </script>
 
 <template>
   <div>
+    <div class="unsaved-changes" v-if='hasUnsavedChanges'>
+      You have unsaved labels in local storage. <a href="#" @click.prevent="showUnsavedChanges()" class="normal">Click here</a> to see them.
+    </div>
     <largest-repositories :repos="largestRepositoriesList" v-if="largestRepositoriesList"
       class="largest-repositories"
       @selected="findProject"
@@ -141,6 +157,9 @@ const typeAheadVisible = computed(() => {
     <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
       <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
     </div>
+    <transition name='slide-top'>
+      <unsaved-changes v-if='unsavedChangesVisible' @close='unsavedChangesVisible = false' class='changes-window'></unsaved-changes>
+    </transition>
     <transition name='slide-left'>
       <about v-if="aboutVisible" @close='aboutVisible = false' class="about"></about>
     </transition>
@@ -184,6 +203,35 @@ const typeAheadVisible = computed(() => {
   border-left: 1px solid var(--color-border);
   display: grid;
   grid-template-rows: minmax(0, 40%) minmax(0, 60%);
+}
+.unsaved-changes {
+  position: absolute;
+  top: 60px;
+  left: 8px;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.slide-top-enter-active, .slide-top-leave-active {
+  transition: opacity .3s cubic-bezier(0,0,0.58,1);
+}
+.slide-top-enter, .slide-top-leave-to {
+  opacity: 0;
+}
+.changes-window {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  top: 0;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  background: var(--color-background);
+  z-index: 2;
+  box-shadow: 0 -1px 24px rgb(0 0 0);
+  padding: 8px 16px;
+  overflow-y: auto;
+  max-height: 100%;
 }
 .context-menu {
   position: absolute;

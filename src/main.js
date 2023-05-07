@@ -1,23 +1,52 @@
 import './assets/main.css'
-import { createApp } from 'vue'
-import App from './App.vue'
+
+let vueLoader = document.querySelector('.vue-loading');
+let mapLoader = document.querySelector('.map-loading');
+
+if (!webglSupported()) {
+  document.body.innerHTML = `<div class='no-webgl'>
+    <h4>WebGL is not enabled :(</h4>
+    <p>This website needs <a href='https://en.wikipedia.org/wiki/WebGL' class='critical'>WebGL</a> to render a map of GitHub.
+    </p> <p>
+    You can try another browser. If the problem persists - very likely your video card isn't supported.
+    </p>
+  </div>`;
+} else {
+  if (vueLoader) vueLoader.innerText = 'Loading Vue containers...';
+  if (mapLoader) mapLoader.innerText = 'Loading Map...';
+  import( './lib/createMap.js').then(({default: createMap}) => {
+    mapLoader?.remove();
+    mapLoader = null;
+    window.mapOwner = createMap();
+    cleanUpLoaderIfNeeded();
+  });
+
+  import('./startVue').then(({default: startVue}) => {
+    vueLoader?.remove();
+    vueLoader = null;
+    startVue();
+    cleanUpLoaderIfNeeded();
+  });
+
+  import( './lib/createFuzzySearcher.js').then(({default: createFuzzySearcher}) => {
+    // This is kind of bad, but also make searching available in the console and easier to
+    // hook with type-ahead.
+    window.fuzzySearcher = createFuzzySearcher();
+  })
+}
 
 
-const app = createApp(App);
-app.directive('focus', {
-  mounted(el) {
-    el.focus()
+function cleanUpLoaderIfNeeded() {
+  if (!vueLoader && !mapLoader) {
+    document.querySelector('.boot')?.remove();
   }
-});
+}
 
-app.mount('#app')
-
-import( './lib/createMap.js').then(({default: createMap}) => {
-  window.mapOwner = createMap();
-});
-
-import( './lib/createFuzzySearcher.js').then(({default: createFuzzySearcher}) => {
-  // This is kind of bad, but also make searching available in the console and easier to
-  // hook with type-ahead.
-  window.fuzzySearcher = createFuzzySearcher();
-})
+function webglSupported() {
+  try {
+    const canvas = document.createElement('canvas');
+    return !!window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+  } catch (e) {
+    return false;
+  }
+}

@@ -428,9 +428,7 @@ function getDefaultStyle() {
         "text-letter-spacing": 0,
     },
     "paint": {
-        "text-color": "hsl(240,14%,23%)",
-        "text-halo-color": "hsla(0,0%,100%,0.8)",
-        "text-halo-width": 1
+      'text-color': '#FFF',
     },
 
     filter: [">", "symbolzoom", 1],
@@ -447,9 +445,7 @@ function getDefaultStyle() {
         "text-max-width": 6.25,
     },
     "paint": {
-        "text-color": "hsl(240,14%,23%)",
-        "text-halo-color": "hsla(0,0%,100%,0.8)",
-        "text-halo-width": 1
+        "text-color": "#FFF",
     },
 },
       ]

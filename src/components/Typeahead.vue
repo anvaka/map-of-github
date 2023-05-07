@@ -45,9 +45,9 @@
 
     <ul v-if="showLoading" class="suggestions">
       <li class="searching">
-        <span v-if="!loadingError">Searching...</span>
+        <span v-if="!loadingError">Downloading search index for letter <b>{{ currentQuery[0] }}</b>...</span>
         <div v-if="loadingError" class="loading-error">
-          <div>Failed to get reddit completions:</div>
+          <div>Failed to get project completions:</div>
           <pre>{{loadingError}}</pre>
         </div>
       </li>
@@ -173,9 +173,10 @@ export default {
           self.showIfNeeded(p && p.length > 0);
         } else if (p) {
           self.loadingError = null;
-          // self.showLoading = true;
+          self.showLoading = true;
           p.then(
             function(suggestions) {
+              if (suggestions === undefined) return; // resolution of cancelled promise
               self.showLoading = false;
               suggestions = suggestions || [];
               self.suggestions = suggestions.map(toOwnSuggestion);
@@ -360,6 +361,9 @@ input:focus {
 
 input::placeholder {
   color: var(--color-text);
+}
+.searching b {
+  font-weight: bold;
 }
 
 @media (max-width: 600px) {

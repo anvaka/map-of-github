@@ -211,6 +211,8 @@ function showUnsavedChanges() {
   padding: 8px;
   font-size: 12px;
   color: var(--color-text);
+  background: var(--color-background);
+  width: calc(var(--side-panel-width) - 8px);
 }
 
 .slide-top-enter-active, .slide-top-leave-active {

@@ -3,6 +3,7 @@ import {ref, onBeforeUnmount, onBeforeMount, computed} from 'vue';
 import TypeAhead from './components/TypeAhead.vue';
 import GithubRepository from './components/GithubRepository.vue';
 import SmallPreview from './components/SmallPreview.vue';
+import About from './components/About.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
 import bus from './lib/bus'
 
@@ -13,6 +14,7 @@ const currentProject = ref('');
 const smallPreviewName = ref('');
 const tooltip = ref(null);
 const contextMenu = ref(null);
+const aboutVisible = ref(false);
 const largestRepositoriesList = ref(null);
 const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
 let lastSelected;
@@ -123,7 +125,7 @@ const typeAheadVisible = computed(() => {
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
       <type-ahead
         placeholder="Find Project"
-        @menuClicked='sidebarVisible = true'
+        @menuClicked='aboutVisible = true'
         @selected='findProject'
         @beforeClear='closeSideBarOnSmallScreen'
         @cleared='closeSideBarViewer'
@@ -139,6 +141,9 @@ const typeAheadVisible = computed(() => {
     <div class="context-menu" v-if="contextMenu" :style="{left: contextMenu.left, top: contextMenu.top}">
       <a href="#" v-for="(item, key) in contextMenu.items" :key="key" @click.prevent="doContextMenuAction(item)">{{ item.text }}</a>
     </div>
+    <transition name='slide-left'>
+      <about v-if="aboutVisible" @close='aboutVisible = false' class="about"></about>
+    </transition>
   </div>
 </template>
 
@@ -208,6 +213,12 @@ const typeAheadVisible = computed(() => {
 .slide-bottom-enter, .slide-bottom-leave-to {
   transform: translateY(84px);
 }
+.slide-left-enter-active, .slide-left-leave-active {
+  transition: transform 150ms cubic-bezier(0,0,0.58,1);
+}
+.slide-left-enter, .slide-left-leave-to {
+  transform: translateX(-100%);
+}
 .small-preview {
   position: fixed;
   bottom: 0;
@@ -217,6 +228,19 @@ const typeAheadVisible = computed(() => {
   background: var(--color-background);
   box-shadow: 0 -4px 4px rgba(0,0,0,0.42);
 }
+.about {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--side-panel-width);
+  background: var(--color-background);
+  z-index: 2;
+  box-shadow: 0 -1px 24px rgb(0 0 0);
+  display: flex;
+  flex-direction: column;
+}
+
 
 @media (max-width: 800px) {
   .repo-viewer, .search-box, .largest-repositories {

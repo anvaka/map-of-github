@@ -27,6 +27,13 @@ export function setAuthToken(token) {
   bus.fire('auth-changed');
 }
 
+export function signOut() {
+  delete headers['Authorization'];
+  document.cookie = 'github_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  currentUser = null;
+  bus.fire('auth-changed');
+}
+
 export async function getCurrentUser() {
   if (currentUser) return currentUser;
   if (!headers['Authorization']) return;
@@ -36,6 +43,10 @@ export async function getCurrentUser() {
     currentUser = await response.json();
     return currentUser;
   }
+}
+
+export function getCachedCurrentUser() {
+  return currentUser;
 }
 
 export async function getRepoInfo(repoName) {
@@ -105,31 +116,3 @@ export async function getReadme(repoName, default_branch) {
 function formatNiceNumber(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-
-// function fixRelativePaths(markdown, repo, branch) {
-//   const repoUrl = `https://github.com/${repo}/blob/${branch}`;
-//   let fixedMarkdown = markdown;
-  
-//   // Fix markdown links and image sources
-//   const markdownRegex = /(!\[.*?\]\()(.+?)(\))/g;
-//   fixedMarkdown = fixedMarkdown.replace(markdownRegex, (match, p1, p2, p3) => {
-//     if (p2.startsWith('http')) {
-//       return match;
-//     } else {
-//       return `${p1}${repoUrl}/${p2}${p3}`;
-//     }
-//   });
-  
-//   // Fix <img> tags
-//   const imgRegex = /(<img.*?src=")(.+?)(".*?>)/g;
-//   let imgUrl = 'https://raw.githubusercontent.com/' + repo + '/' + branch + '/';
-//   fixedMarkdown = fixedMarkdown.replace(imgRegex, (match, p1, p2, p3) => {
-//     if (p2.startsWith('http')) {
-//       return match;
-//     } else {
-//       return `${p1}${imgUrl}/${p2}${p3}`;
-//     }
-//   });
-  
-//   return fixedMarkdown;
-// }

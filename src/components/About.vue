@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
     </div>
     <div class="container">
       <p>
-        <img src="apple-touch-icon.png" alt="GitHub Map" class="map-image">
+        <img src="../../public/apple-touch-icon.png" alt="GitHub Map" class="map-image">
         Each dot is a GitHub project. Two dots within the same cluster are 
         usually close to each other if multiple users frequently gave stars to
         both projects. The size of the dot indicates the number of stars the

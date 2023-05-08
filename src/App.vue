@@ -296,6 +296,15 @@ function showUnsavedChanges() {
   .repo-viewer, .search-box, .largest-repositories {
     width: 45vw;
   }
+  .search-box {
+    margin: 0;
+    left: 0;
+  }
+  .unsaved-changes {
+    width: 45vw;
+    left: 0;
+    top: 48px
+  }
 }
 @media (max-width: 600px) {
   .repo-viewer {

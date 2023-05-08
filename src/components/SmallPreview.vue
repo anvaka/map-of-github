@@ -58,6 +58,10 @@ function fetchRepositoryInformation() {
       repoInfo.state = 'ERROR';
       errorInfo.value = 'Repository not found.';
       return;
+    } else if (data?.state === 'ERROR') {
+      repoInfo.state = 'ERROR';
+      errorInfo.value = data.error;
+      return;
     }
     Object.assign(repoInfo, data);
     p.state = 'LOADED';

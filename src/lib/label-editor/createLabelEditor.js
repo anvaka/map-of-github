@@ -5,7 +5,7 @@ import bus from '../bus';
 
 export default function createLabelEditor(map) {
   let places;
-  const placeLabelLayers = ['place-country-1', 'place-country-0'];
+  const placeLabelLayers = ['place-country-1'];
 
   getPlaceLabels().then(loadedPlaces => {
     map.getSource('place').setData(loadedPlaces)

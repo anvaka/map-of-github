@@ -396,7 +396,7 @@ function getDefaultStyle() {
         // TODO: move labels stuff to label editor?
 {
     "id": "place-country-1",
-    minzoom: 1, 
+    // minzoom: 1, 
     maxzoom: 10,
     type: "symbol",
     source: "place",
@@ -409,9 +409,9 @@ function getDefaultStyle() {
           1,
           [
             "step",
-            ["get", "symbolzoom"], 11, 
-            4, 9, 
-            5, 8
+            ["get", "symbolzoom"], 15, 
+            4, 13, 
+            5, 12
           ],
           9,
           [
@@ -421,7 +421,7 @@ function getDefaultStyle() {
             5, 17
           ]
         ],
-        'symbol-sort-key': ['get', 'symbolzoom'],
+        "symbol-sort-key": ["get", "symbolzoom"],
         "text-field": "{name}",
         "text-max-width": 6,
         "text-line-height": 1.1,
@@ -433,21 +433,21 @@ function getDefaultStyle() {
 
     filter: [">", "symbolzoom", 1],
 },
-{
-    "id": "place-country-0",
-    type: "symbol",
-    source: "place",
-    maxzoom: 1,
-    "layout": {
-        "text-font": [ "Roboto Condensed Bold" ],
-        "text-size": 14,
-        "text-field": "{name}",
-        "text-max-width": 6.25,
-    },
-    "paint": {
-        "text-color": "#FFF",
-    },
-},
+// {
+//     "id": "place-country-0",
+//     type: "symbol",
+//     source: "place",
+//     maxzoom: 1,
+//     "layout": {
+//         "text-font": [ "Roboto Condensed Bold" ],
+//         "text-size": 14,
+//         "text-field": "{name}",
+//         "text-max-width": 6.25,
+//     },
+//     "paint": {
+//         "text-color": "#FFF",
+//     },
+// },
       ]
     },
   };

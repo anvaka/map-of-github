@@ -164,6 +164,9 @@ onBeforeUnmount(() => {
       <div v-if="repoInfo.state === 'NOT_FOUND'" class="not-found">
         Repository not found.
       </div>
+      <div v-if="repoInfo.state === 'ERROR'" class="not-found">
+        {{ repoInfo.error }}
+      </div>
       <div v-if="isAnonymous && repoInfo.state !== 'LOADING'" class="sign-in-container">
         <a :href="getOauthLink()" @click="signInWithGithub" class="sign-in" >Sign in with Github</a> to get higher rate limits and more information about this repository.
         <span v-if="repoInfo && repoInfo.remainingRequests !== undefined">

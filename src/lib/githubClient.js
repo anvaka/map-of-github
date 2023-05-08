@@ -67,6 +67,11 @@ export async function getRepoInfo(repoName) {
         state: 'NOT_FOUND',
         name: repoName
       }
+    } else if (response.status === 451) {
+      return {
+        state: 'ERROR',
+        error: 'Repository is unavailable due to legal reasons (http status code 451).',
+      }
     }
     throw new Error(`HTTP error! status: ${response.status}`);
   }

@@ -132,6 +132,12 @@ function showUnsavedChanges() {
     <div class="unsaved-changes" v-if='hasUnsavedChanges'>
       You have unsaved labels in local storage. <a href="#" @click.prevent="showUnsavedChanges()" class="normal">Click here</a> to see them.
     </div>
+    <div class="made-by">
+      Made by
+      <a class="normal" aria-label="Made by @anvaka" target="_blank" href="https://github.com/sponsors/anvaka">
+        @anvaka
+      </a>
+    </div>
     <largest-repositories :repos="largestRepositoriesList" v-if="largestRepositoriesList"
       class="largest-repositories"
       @selected="findProject"
@@ -167,6 +173,19 @@ function showUnsavedChanges() {
 </template>
 
 <style scoped>
+.made-by {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  font-size: 12px;
+  color: #fff;
+}
+.made-by a {
+  color: hsla(160, 100%, 37%, 1);
+}
+
 .search-box {
   position: absolute;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 -1px 0px rgba(0, 0, 0, 0.02);

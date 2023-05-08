@@ -90,7 +90,8 @@ export default function createMap() {
     bus.fire('show-tooltip');
     bus.fire('repo-selected', { text: repo, lat, lon });
 
-    drawBackgroundEdges(e.point, repo);
+    const includeExternal = e.originalEvent.altKey;
+    drawBackgroundEdges(e.point, repo, !includeExternal);
   });
 
   return {
@@ -134,7 +135,7 @@ export default function createMap() {
     return borderFeature[0];
   }
 
-  function drawBackgroundEdges(point, repo) {
+  function drawBackgroundEdges(point, repo, ignoreExternal = true) {
     const bgFeature = getBackgroundNearPoint(point);
     if (!bgFeature) return;
     const groupId = bgFeature.id;
@@ -155,7 +156,7 @@ export default function createMap() {
       let firstLevelLinks = [];
       let primaryNodePosition;
       groupGraph.forEachLink(link => {
-        if (link.data?.e) return; // external;
+        if (link.data?.e && ignoreExternal) return; // external;
         const fromGeo = groupGraph.getNode(link.fromId).data.l;
         const toGeo = groupGraph.getNode(link.toId).data.l;
 

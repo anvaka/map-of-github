@@ -2,6 +2,7 @@
 rm -rf ./dist
 npm run build
 cd ./dist
+touch .nojekyll
 git init
 git add .
 git commit -m 'push to gh-pages'

@@ -17,7 +17,7 @@ export default function createLabelEditor(map) {
     getPlaces: () => places
   }
 
-  function getContextMenuItems(e) {
+  function getContextMenuItems(e, borderOwnerId) {
     const labelFeature = map.queryRenderedFeatures(e.point, { layers: placeLabelLayers });
     let items = []
     if (labelFeature.length) {
@@ -29,14 +29,14 @@ export default function createLabelEditor(map) {
     } else {
       items.push({
         text: 'Add label',
-        click: () => addLabel(e.lngLat)
+        click: () => addLabel(e.lngLat, borderOwnerId)
       });
     }
 
     return items;
   }
 
-  function addLabel(lngLat) {
+  function addLabel(lngLat, borderOwnerId) {
     const markerEditor = createMarkerEditor(map, save);
 
     const marker = new maplibregl.Popup({closeButton: false});
@@ -48,7 +48,7 @@ export default function createLabelEditor(map) {
 
     function save(value) {
       if (!value) return;
-      places = addLabelToPlaces(places, value, marker.getLngLat(), map.getZoom());
+      places = addLabelToPlaces(places, value, marker.getLngLat(), map.getZoom(), borderOwnerId);
       map.getSource('place').setData(places);
       bus.fire('unsaved-changes-detected', true);
     }

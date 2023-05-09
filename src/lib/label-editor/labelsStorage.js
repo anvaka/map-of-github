@@ -25,7 +25,7 @@ function savePlaceLabels(places) {
   localStorage.setItem('places', JSON.stringify(places));
 }
 
-export function addLabelToPlaces(places, value, lngLat, mapZoomLevel) {
+export function addLabelToPlaces(places, value, lngLat, mapZoomLevel, borderOwnerId) {
   let labelId = generateShortRandomId();
   while (indexedPlaces.has(labelId)) labelId = generateShortRandomId();
 
@@ -34,6 +34,9 @@ export function addLabelToPlaces(places, value, lngLat, mapZoomLevel) {
     geometry: {type: 'Point', coordinates: [lngLat.lng, lngLat.lat].map(x => Math.round(x * 1000) / 1000)},
     properties: {symbolzoom: Math.ceil(mapZoomLevel), name: value, labelId}
   };
+  if (borderOwnerId !== undefined) {
+    label.properties.ownerId = borderOwnerId;
+  }
   places.features.push(label);
 
   indexedPlaces.set(labelId, label);

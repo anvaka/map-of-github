@@ -19,6 +19,11 @@ if (!webglSupported()) {
     mapLoader = null;
     window.mapOwner = createMap();
     cleanUpLoaderIfNeeded();
+  }).catch((e) => {
+    console.error(e);
+    mapLoader?.remove();
+    mapLoader = null;
+    showErrorMessage(e);
   });
 
   import('./startVue').then(({default: startVue}) => {
@@ -26,6 +31,11 @@ if (!webglSupported()) {
     vueLoader = null;
     startVue();
     cleanUpLoaderIfNeeded();
+  }).catch(e => {
+    console.error(e);
+    vueLoader?.remove();
+    vueLoader = null;
+    showErrorMessage(e);
   });
 
   import( './lib/createFuzzySearcher.js').then(({default: createFuzzySearcher}) => {
@@ -49,4 +59,17 @@ function webglSupported() {
   } catch (e) {
     return false;
   }
+}
+
+function showErrorMessage(e) {
+  document.body.innerHTML = `<div class='no-webgl'>
+    <h4>Something went wrong :(</h4>
+    <p>
+      Please try to reload the page. If the problem persists, please <a href='https://github.com/anvaka/map-of-github/issues' class='critical'>let me know</a>.
+    </p>
+    <p>
+    The error message was: <pre class="error"></pre>
+    </p>
+  </div>`;
+  document.querySelector('.error').innerText = e.message;
 }

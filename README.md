@@ -3,8 +3,12 @@
 This is a map of 400,000+ GitHub projects. Each dot is a project. Dots are close to each other if they have a lot of common
 stargazers.
 
-![Map of GitHub](public/android-chrome-512x512.png)
-*image credit: Louise Kashcha*
+<div align="center">
+<img src="public/android-chrome-512x512.png" alt="Map of GitHub logo"/>
+</div>
+<div align="center">
+  <i>Logo by Louise Kashcha, 9 years old. Thank you ❤️</i> 
+</div>
 
 ## How was it made?
 

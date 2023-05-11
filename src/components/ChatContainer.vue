@@ -4,9 +4,9 @@ import { getOpenAIModels, getStoredOpenAIKey, storeOpenAIKey } from '../lib/open
 import ChatList from './ChatList.vue';
 
 const props = defineProps({
-  messages: {
-    type: Array,
-    required: false
+  vm: {
+    type: Object,
+    required: true
   },
   description: {
     type: String,
@@ -67,7 +67,7 @@ function clearKey() {
   
   <div v-if="loadingModels">Loading models...</div>
   <div v-if="errorMessage">{{ errorMessage }}</div>
-  <chat-list :messages="props.messages" :models="models" v-if="models.length" />
+  <chat-list :vm="props.vm" :models="models" v-if="models.length" />
 </div>
 </template>
 

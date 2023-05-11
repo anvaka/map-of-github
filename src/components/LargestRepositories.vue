@@ -3,7 +3,7 @@ import {defineProps, defineEmits, computed} from 'vue';
 import ChatContainer from './ChatContainer.vue';
 const props = defineProps({
   repos: {
-    type: Array,
+    type: Object,
     required: true
   }
 });
@@ -24,15 +24,6 @@ function getLink(repo) {
   return 'https://github.com/' + repo.name;
 }
 
-const promptMessage = computed(() => {
-  return [{
-    role: 'system',
-    content: 'A user is looking at the following github repositories:' + props.repos.slice(0, 20).map(repo => '\n- ' + repo.name).join('')
-  }, {
-    role: 'user',
-    content: ''
-  }];
-});
 </script>
 <template>
   <div>
@@ -45,8 +36,8 @@ const promptMessage = computed(() => {
       <line x1="9" y1="9" x2="15" y2="15"></line>
     </svg>
   </a>In this country</h2>
-      <ul v-if="props.repos.length">
-        <li v-for="repo in props.repos" :key="repo.name">
+      <ul v-if="props.repos.largest.length">
+        <li v-for="repo in props.repos.largest" :key="repo.name">
           <a :href="getLink(repo)" @click.prevent="showDetails(repo)" target="_blank">{{repo.name}}</a>
         </li>
       </ul>
@@ -54,7 +45,7 @@ const promptMessage = computed(() => {
         <p>No repositories found. Try zooming in?</p>
       </div>
     </div>
-    <chat-container description="Wanna learn more about these projects?" :messages="promptMessage" class="chat-container"/>
+    <chat-container description="Wanna learn more about these projects?" :vm="props.repos" class="chat-container"/>
   </div>
 </template>
 <style scoped>

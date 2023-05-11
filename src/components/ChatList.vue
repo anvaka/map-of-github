@@ -1,12 +1,10 @@
 <script setup>
-import { defineProps, ref, nextTick, watch} from 'vue';
-import generateShortRandomId from '../lib/generateShortRandomId.js';
-import { chat } from '../lib/openAIClient';
+import { defineProps, ref} from 'vue';
 
 const props = defineProps({
-  messages: {
-    type: Array,
-    required: false
+  vm: {
+    type: Object,
+    required: true
   },
   models: {
     type: Array,
@@ -15,80 +13,9 @@ const props = defineProps({
 });
 
 const selectedModel = ref(props.models[0].id);
-const error = ref('');
-let loading = ref(false);
-let pendingRequest;
-
-let computedMessages = ref(props.messages?.map((message, idx) => {
-    return {
-      id: idx,
-      content: message.content,
-      role: message.role,
-      isEdited: false
-    }
-  }) || []);
-
-watch(() => props.messages, (newValue, oldValue) => {
-  if (newValue === oldValue) return;
-  computedMessages.value = newValue.map((message, idx) => {
-    return {
-      id: idx,
-      content: message.content,
-      role: message.role,
-      isEdited: false
-    }
-  });
-});
-
-
-function addMessage() {
-  computedMessages.value.push({
-    id: generateShortRandomId(),
-    content: '',
-    role: 'user',
-    isEdited: true
-  });
-}
 
 function submit() {
-  error.value = '';
-  pendingRequest?.cancel();
-  let request = {
-    model: selectedModel.value,
-    messages: computedMessages.value.map(message => {
-      return {
-        content: message.content,
-        role: message.role
-      }
-    }),
-  }
-  computedMessages.value.forEach(message => {
-    message.isEdited = false;
-  });
-  let isCancelled = false;
-  loading.value = true;
-  let p = chat(request).then(responseMessage => {
-    if (isCancelled) return;
-    loading.value = false;
-    let newMessageId = generateShortRandomId();
-    responseMessage.id = newMessageId;
-    computedMessages.value.push(responseMessage);
-    nextTick(() => {
-      let newMessageEl = document.querySelector(`.add-message-link`);
-      if (newMessageEl) newMessageEl.scrollIntoView();
-    });
-  }).catch(err => {
-    console.error(err);
-    error.value = 'Something went wrong. Open dev console for more details';
-  }).finally(() => {
-    loading.value = false;
-  });
-  p.cancel = () => { isCancelled = true; }
-  pendingRequest = p;
-}
-
-function deleteMessage(id) {
-  computedMessages.value = computedMessages.value.filter(message => message.id !== id);
+  props.vm.submit(selectedModel.value);
 }
 
 function getDisplayContent(message) {
@@ -110,8 +37,7 @@ function submitOnCmdEnter(event) {
 }
 
 function cancelQuery() {
-  loading.value = false;
-  pendingRequest?.cancel();
+  props.vm.cancelQuery()
 }
 
 const vTextareaFitContentSize = {
@@ -141,7 +67,7 @@ const vTextareaFitContentSize = {
   </select>
   <div class="container">
     <ul class="message-list">
-      <li v-for="message in computedMessages" :key="message.id" class="message"
+      <li v-for="message in vm.chat" :key="message.id" class="message"
           :class="{
             'user-role': message.role === 'user',
             [message.id]: true
@@ -159,17 +85,17 @@ const vTextareaFitContentSize = {
           v-focus 
           placeholder="Enter message here">
         </textarea>
-        <a href="#" @click.prevent="deleteMessage(message.id)" class="delete" v-if="message.role !== 'system'">x</a>
+        <a href="#" @click.prevent="vm.deleteMessage(message.id)" class="delete" v-if="message.role !== 'system'">x</a>
       </li>
       <li>
-        <a href="#" @click.prevent="addMessage()" class="normal add-message-link" v-if="!loading">Add message</a>
+        <a href="#" @click.prevent="vm.addMessage()" class="normal add-message-link" v-if="!vm.loading">Add message</a>
       </li>
     </ul>
-    <div class='actions' v-if="!loading">
-      <div class="error" v-if="error">{{ error }}</div>
+    <div class='actions' v-if="!vm.loading">
+      <div class="error" v-if="vm.error">{{ vm.error }}</div>
       <a href="#" @click.prevent="submit()" class="normal">Submit</a>
     </div>
-    <div class="actions" v-if="loading">
+    <div class="actions" v-if="vm.loading">
       <div class="loader-container">
         <div class="loader"></div>
         <a href="#" @click.prevent="cancelQuery()" class="critical label">Cancel</a>

@@ -18,7 +18,7 @@ export async function getOpenAIModels() {
     });
 }
 
-export async function chat(messages) {
+export async function sendChatRequest(messages) {
   const headers = getAuthHeaders();
   headers['Content-Type'] = 'application/json';
   const body = JSON.stringify(messages); 
@@ -26,6 +26,9 @@ export async function chat(messages) {
   const url = "https://api.openai.com/v1/chat/completions";
   const response = await fetch(url, { method: "POST", headers, body });
   const data = await response.json();
+  console.log(messages.messages[0].content.slice(0, 120));
+  console.log(data.choices[0].message.content);
+  console.log('-----------')
 
   if (data?.error?.message) throw new Error(data.error.message);
 

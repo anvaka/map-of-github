@@ -6,6 +6,7 @@ import SmallPreview from './components/SmallPreview.vue';
 import About from './components/About.vue';
 import UnsavedChanges from './components/UnsavedChanges.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
+import GroupViewModel from './lib/GroupViewModel';
 
 import bus from './lib/bus'
 
@@ -17,7 +18,7 @@ const smallPreviewName = ref('');
 const tooltip = ref(null);
 const contextMenu = ref(null);
 const aboutVisible = ref(false);
-const largestRepositoriesList = ref(null);
+const currentGroup = ref(null);
 const unsavedChangesVisible = ref(false);
 const hasUnsavedChanges = ref(false);
 const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
@@ -25,6 +26,8 @@ let lastSelected;
 
 function onTypeAheadInput() {
 }
+
+const groupCache = new Map();
 
 function closeSideBarViewer() {
   sidebarVisible.value = false;
@@ -104,8 +107,14 @@ function doContextMenuAction(menuItem) {
 }
 
 
-function onShowLargest(largest) {
-  largestRepositoriesList.value = largest;
+function onShowLargest(groupId, largest) {
+  let groupViewModel = groupCache.get(groupId);
+  if (!groupViewModel) {
+    groupViewModel = new GroupViewModel(groupId);
+    groupCache.set(groupId, groupViewModel);
+  }
+  groupViewModel.setLargest(largest);
+  currentGroup.value = groupViewModel;
 }
 
 function onUnsavedChangesDetected(hasChanges) {
@@ -113,12 +122,12 @@ function onUnsavedChangesDetected(hasChanges) {
 }
 
 function closeLargestRepositories() {
-  largestRepositoriesList.value = null
+  currentGroup.value = null
   window.mapOwner?.clearBorderHighlights();
 }
 
 const typeAheadVisible = computed(() => {
-  return !(isSmallScreen.value && largestRepositoriesList.value && !currentProject.value);
+  return !(isSmallScreen.value && currentGroup.value && !currentProject.value);
 });
 
 function showUnsavedChanges() {
@@ -138,7 +147,7 @@ function showUnsavedChanges() {
         @anvaka
       </a>
     </div>
-    <largest-repositories :repos="largestRepositoriesList" v-if="largestRepositoriesList"
+    <largest-repositories :repos="currentGroup" v-if="currentGroup"
       class="largest-repositories"
       @selected="findProject"
       @close="closeLargestRepositories()"

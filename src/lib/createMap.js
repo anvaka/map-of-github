@@ -57,7 +57,8 @@ export default function createMap() {
         
         map.setFilter("border-highlight", ["==", ["id"], bg.id]);
         map.setLayoutProperty("border-highlight", "visibility", "visible");
-        bus.fire("show-largest", Array.from(seen.values()));
+        // todo: fire a view model here instead of the list.
+        bus.fire("show-largest", bg.id, Array.from(seen.values()));
       }
     });
 

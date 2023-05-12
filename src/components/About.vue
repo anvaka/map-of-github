@@ -55,7 +55,7 @@ onBeforeUnmount(() => {
       <h2>Support</h2>
       <p>
         If you love this project, please consider supporting it on <a href="https://github.com/sponsors/anvaka" class='normal'>GitHub</a>.
-        Follow me on <a href="https://twitter.com/anvaka" class='normal'>Twitter</a> for updates.
+        Follow me on <a href="https://twitter.com/anvaka" class='normal'>Twitter</a> for updates. The source code is <a href="https://github.com/anvaka/map-of-github" class='normal'>here</a>.
       </p>
       <p>
         Gratefully yours, <br>

@@ -61,7 +61,7 @@ function clearKey() {
       <button type="submit">Save to local storage</button>
     </div>
       <p class="note"><strong>Note:</strong> This token will be stored in your browser's local storage. 
-        It will never be sent to any server other than OpenAI's. See our source code for details.
+        It will never be sent to any server other than OpenAI's. See our <a href="https://github.com/anvaka/map-of-github/blob/main/src/components/ChatContainer.vue" class="normal">source code</a> for details.
       </p>
   </form>
   

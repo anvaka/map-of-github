@@ -52,6 +52,11 @@ Most of the time I like data presented by this project bette than visual design 
 or just have a wonderful design vision how it should look like - please don't hesitate to share. I'm still looking for the style
 that matches the data.
 
+## Support
+
+If you find this project useful and would like to support it - please join [the support group](https://github.com/sponsors/anvaka).
+If you need any help with this project or have any questions - don't hesitate to open an issue here or ping me on [twitter](https://twitter.com/anvaka)
+
 ## License
 
 I'm releasing this repository under MIT license. However if you use the data in your own work, please consider giving attribution to this project.

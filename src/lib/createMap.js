@@ -73,8 +73,6 @@ currentColorTheme.color.forEach((row) => {
   colorStyle.push(["==", ["get", "fill"], row.input], row.output);
 })
 colorStyle.push("#FF0000");
-console.log(colorStyle);
-
 
 export default function createMap() {
   const map = new maplibregl.Map(getDefaultStyle());
@@ -207,7 +205,7 @@ export default function createMap() {
     const groupId = bgFeature.id;
     if (groupId === undefined) return;
 
-    const fillColor = bgFeature.properties.fill;
+    const fillColor = getPolygonFillColor(bgFeature.properties);
     let complimentaryColor = getComplimentaryColor(fillColor);
     fastLinesLayer.clear();
     backgroundEdgesFetch?.cancel();
@@ -503,4 +501,13 @@ function getDefaultStyle() {
       ]
     },
   };
+}
+
+function getPolygonFillColor(polygonProperties) {
+  for (const color of currentColorTheme.color) {
+    if (color.input === polygonProperties.fill) {
+      return color.output;
+    }
+  }
+  return polygonProperties.fill;
 }

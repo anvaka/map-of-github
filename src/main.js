@@ -73,3 +73,9 @@ function showErrorMessage(e) {
   </div>`;
   document.querySelector('.error').innerText = e.message;
 }
+
+// Print friendly message to the viewer:
+console.log(`%c 👋 Hello there!`, 'font-size: 24px; font-weight: bold;');
+console.log('Thank you for checking out source code. You can read it here: ')
+console.log('https://github.com/anvaka/map-of-github');
+console.log('If you have any questions, please let me know');

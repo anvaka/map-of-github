@@ -21,7 +21,6 @@ export async function getPlaceLabels() {
 }
 
 function savePlaceLabels(places) {
-  // console.log(places);
   localStorage.setItem('places', JSON.stringify(places));
 }
 

@@ -4,7 +4,6 @@ import { getCachedCurrentUser, signOut } from '../lib/githubClient.js';
 import bus from '../lib/bus.js';
 
 const currentUser = ref(getCachedCurrentUser());
-console.log(currentUser);
 const emit = defineEmits(['close']);
 
 function close() {

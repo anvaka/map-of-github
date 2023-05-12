@@ -1,4 +1,4 @@
-export default function getComplimentaryColor(color, lightningFactor = 1.4, alpha = 0xaa) {
+export default function getComplimentaryColor(color, alpha = 0xaa) {
   if (typeof color === 'string') {
     if (color[0] === '#') {
       color = parseInt(color.slice(1), 16);
@@ -11,9 +11,12 @@ export default function getComplimentaryColor(color, lightningFactor = 1.4, alph
   let r = (color >> 24) & 0xff;
   let g = (color >> 16) & 0xff;
   let b = (color >> 8) & 0xff;
+
   let [h, s, l] = rgbToHsl(r, g, b);
-  if (l > 0.5) lightningFactor = .8;
-  let [r0, g0, b0] = hslToRgb(h, s, Math.min(1, l * lightningFactor));
+  if (l > 0.5) l = Math.max(0, l - 0.2);
+  else l = Math.min(1, l + 0.2);
+  s = Math.min(1, s * 1.2);
+  let [r0, g0, b0] = hslToRgb(h, s, l);
   return (r0 << 24) | (g0 << 16) | (b0 << 8) | alpha;
 }
 

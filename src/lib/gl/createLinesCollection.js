@@ -2,6 +2,7 @@ import {defineProgram, InstancedAttribute, ColorAttribute} from 'w-gl';
 
 
 export function getCustomLayer(layerName = 'graph-edges') {
+
   return {
     id: layerName,
     type: 'custom',
@@ -44,18 +45,29 @@ void main() {
         }
       });
     },
+
     render: function (gl, matrix) {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         let zoom = this.map.getZoom();
+        let width = 0.00005 / zoom;
+        if (zoom >= 13.5) {
+          width = 1e-2 * (13.5 + 1) / Math.exp(13.5);
+        } else if (zoom >= 9.99851) {
+          // use exponential from here:
+          width = 1e-2 * (zoom + 1) / Math.exp(zoom);
+        }
         this.program.draw({
-          width: 0.00005 / zoom,
+          //width: 0.00005 / zoom,
+          width,
           modelViewProjection: matrix,
         });
     },
+
     clear() {
       this.program.setCount(0);
     },
+
     addLine(lineDef) {
       this.program.add(lineDef);
     }

@@ -9,6 +9,72 @@ import createLabelEditor from "./label-editor/createLabelEditor";
 
 const primaryHighlightColor = "#bf2072";
 const secondaryHighlightColor = "#e56aaa";
+const original = {
+  background: '#101010',
+
+  circleColor: "#fff",
+  circleStrokeColor: "#000",
+  circleLabelsColor: "#FFF",
+  circleLabelsHaloColor: "#111",
+  circleLabelsHaloWidth: 0,
+
+  placeLabelsColor: "#FFF",
+  placeLabelsHaloColor: "#000",
+  placeLabelsHaloWidth: 1,
+
+  color: [
+    {input: '#516ebc', output: '#516ebc'},
+    {input: '#00529c', output: '#00529c'},
+    {input: '#153477', output: '#153477'},
+    {input: '#37009c', output: '#37009c'},
+    {input: '#00789c', output: '#00789c'},
+    {input: '#37549c', output: '#37549c'},
+  ]
+};
+
+const explorer = {
+  // background: "#0C2446",
+  // circleColor: "#0C2446",
+  // circleStrokeColor: "#000",
+  // circleLabelsColor: "#fff",
+  // circleLabelsHaloColor: "#0C2446",
+  // circleLabelsHaloWidth: 1,
+
+  // placeLabelsColor: "#222",
+  // placeLabelsHaloColor: "#fff",
+  // placeLabelsHaloWidth: 1,
+
+  background: '#030E2E',
+
+  circleColor: "#EAEDEF",
+  circleStrokeColor: "#000",
+  circleLabelsColor: "#FFF",
+  circleLabelsHaloColor: "#111",
+  circleLabelsHaloWidth: 0,
+
+  placeLabelsColor: "#FFF",
+  placeLabelsHaloColor: "#000",
+  placeLabelsHaloWidth: 0.2,
+  color: [
+    {input: '#516ebc', output: '#013185'}, // '#AAD8E6'},
+    {input: '#00529c', output: '#1373A9'}, // '#2B7499'},
+    {input: '#153477', output: '#05447C'}, // '#56A9CE'},
+    {input: '#37009c', output: '#013161'}, // '#2692C6'},
+    {input: '#00789c', output: '#022D6D'}, // '#1CA0E3'},
+    {input: '#37549c', output: '#00154D'}, // '#00396D'},
+    {input: '#9c4b00', output: '#00154D'}, // '#00396D'}
+  ]
+} 
+
+const currentColorTheme = explorer;
+
+const colorStyle = [ "case" ]
+currentColorTheme.color.forEach((row) => {
+  colorStyle.push(["==", ["get", "fill"], row.input], row.output);
+})
+colorStyle.push("#FF0000");
+console.log(colorStyle);
+
 
 export default function createMap() {
   const map = new maplibregl.Map(getDefaultStyle());
@@ -155,10 +221,21 @@ export default function createMap() {
       if (isCancelled) return;
       let firstLevelLinks = [];
       let primaryNodePosition;
+      let renderedNodesAdjustment = new Map();
+      map.querySourceFeatures("points-source", {
+        sourceLayer: "points",
+        filter: ["==", "parent", groupId]
+      }).forEach(repo => {
+        const lngLat = repo.geometry.coordinates;
+        renderedNodesAdjustment.set(repo.properties.label, {
+          lngLat
+        });
+      });
+
       groupGraph.forEachLink(link => {
         if (link.data?.e && ignoreExternal) return; // external;
-        const fromGeo = groupGraph.getNode(link.fromId).data.l;
-        const toGeo = groupGraph.getNode(link.toId).data.l;
+        const fromGeo = renderedNodesAdjustment.get(link.fromId)?.lngLat || groupGraph.getNode(link.fromId).data.l;
+        const toGeo = renderedNodesAdjustment.get(link.toId)?.lngLat || groupGraph.getNode(link.toId).data.l;
 
         const from = maplibregl.MercatorCoordinate.fromLngLat(fromGeo);
         const to = maplibregl.MercatorCoordinate.fromLngLat(toGeo);
@@ -261,7 +338,7 @@ function getDefaultStyle() {
         "id": "background",
         "type": "background",
         "paint": {
-          "background-color": "#111"
+          "background-color": currentColorTheme.background
         }
       },
         {
@@ -270,14 +347,7 @@ function getDefaultStyle() {
           "source": "borders-source",
           "filter": ["==", "$type", "Polygon"],
           "paint": {
-            "fill-color": ["get", "fill"],
-            // "fill-outline-color": [
-            //   "case",
-            //   ["boolean", ["feature-state", "open"], false],
-            //   "#FFF",
-            //   "rgba(0,0,0,0)"
-            // ],
-            // "fill-outline-color": "#FFF",
+            "fill-color": colorStyle
           }
         },
         {
@@ -299,34 +369,29 @@ function getDefaultStyle() {
           "source-layer": "points",
           "filter": ["==", "$type", "Point"],
           "paint": {
-            "circle-color": "#fff",
+            "circle-color": currentColorTheme.circleColor,
             "circle-opacity": [
               "interpolate",
               ["linear"],
               ["zoom"],
-              5,
-              0.1,
-              15,
-              0.9
+              5, 0.1,
+              15, 0.9
             ],
+            "circle-stroke-color": currentColorTheme.circleStrokeColor,
             "circle-stroke-width": 1,
             "circle-stroke-opacity": [
               "interpolate",
               ["linear"],
               ["zoom"],
-              8,
-              0.0,
-              15,
-              0.9
+              8, 0.0,
+              15, 0.9
             ],
             "circle-radius": [
               "interpolate",
               ["linear"],
               ["zoom"],
-              5,  // zoom is 5 (or less) -> circle radius will be 1
-              ["*", ["get", "size"], .1],
-              23, // zoom is 15 (or greater) -> circle radius will be 10
-              ["*", ["get", "size"], 1.5],
+              5,  ["*", ["get", "size"], .1],
+              23, ["*", ["get", "size"], 1.5],
             ]
           }
         },
@@ -348,14 +413,14 @@ function getDefaultStyle() {
               "interpolate",
               ["linear"],
               ["zoom"],
-              8,
-              ["/", ["get", "size"], 4],
-              10,
-              ["+", ["get", "size"], 8]
+              8,  ["/", ["get", "size"], 4],
+              10, ["+", ["get", "size"], 8]
             ],
           },
           "paint": {
-            "text-color": "#FFF",
+            "text-color": currentColorTheme.circleLabelsColor,
+            "text-halo-color": currentColorTheme.circleLabelsHaloColor,
+            "text-halo-width": currentColorTheme.circleLabelsHaloWidth,
           },
         }, 
         {
@@ -382,10 +447,8 @@ function getDefaultStyle() {
               "interpolate",
               ["linear"],
               ["zoom"],
-              8,
-              ["/", ["get", "size"], 4],
-              10,
-              ["+", ["get", "size"], 8]
+              8, ["/", ["get", "size"], 4],
+              10, ["+", ["get", "size"], 8]
             ],
           },
           "paint": {
@@ -407,15 +470,13 @@ function getDefaultStyle() {
           "interpolate",
           [ "cubic-bezier", 0.2, 0, 0.7, 1 ],
           ["zoom"],
-          1,
-          [
+          1, [
             "step",
             ["get", "symbolzoom"], 15, 
             4, 13, 
             5, 12
           ],
-          9,
-          [
+          9, [
             "step",
             ["get", "symbolzoom"], 22,
             4, 19,
@@ -429,10 +490,15 @@ function getDefaultStyle() {
         "text-letter-spacing": 0,
     },
     "paint": {
-      "text-color": "#FFF",
+      "text-color": currentColorTheme.placeLabelsColor,
+      "text-halo-color": currentColorTheme.placeLabelsHaloColor,
+      "text-halo-width": currentColorTheme.placeLabelsHaloWidth,
     },
-
-    "filter": [">", "symbolzoom", 1],
+    "filter": [
+        "<=",
+        ["get", "symbolzoom"],
+        ["+", ["zoom"], 4]
+      ],
 },
       ]
     },

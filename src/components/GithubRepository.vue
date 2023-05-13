@@ -124,6 +124,9 @@ function receiveMessage(event) {
   if (data.source === 'gh_auth' && data.access_token) {
     console.log('Received data:', data);
     setAuthToken(data.access_token);
+    getCurrentUser().then(user => {
+      isAnonymous.value = !user;
+    });
   }
 }
 

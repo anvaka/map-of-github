@@ -12,7 +12,7 @@ stargazers.
 
 ## How was it made?
 
-![current map](public/current-map.png)
+[![current map](public/current-map.png)](https://anvaka.github.io/map-of-github/)
 
 The first step was to fetch who gave stars to which repositories. For this I used a public data set of github activity events on 
 Google BigQuery, considering only events between Jan 2020 and March 2023. This gave me more than 350 million stars.
@@ -63,6 +63,8 @@ Thank you to all my friends and supporters who helped me to get this project off
 Ryan, Andrey, Alex, Dmytro. You are awesome!
 
 Thank you to my dear daughter Louise for making a logo for this project. I love you!
+
+Endless gratitude to all open source contributors who made this project possible. I'm standing on the shoulders of giants.
 
 ## License
 

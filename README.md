@@ -12,6 +12,8 @@ stargazers.
 
 ## How was it made?
 
+![current map](public/current-map.png)
+
 The first step was to fetch who gave stars to which repositories. For this I used a public data set of github activity events on 
 Google BigQuery, considering only events between Jan 2020 and March 2023. This gave me more than 350 million stars.
 (Side note: Mind blowing to think that Milky Way has more than 100 billion stars)
@@ -48,7 +50,7 @@ To implement a searchbox, I used a simple dump of all repositories, indexed by t
 
 ## Design
 
-Most of the time I like data presented by this project bette than visual design of the map. If you have experience designing maps
+Most of the time I like data presented by this project better than visual design of the map. If you have experience designing maps
 or just have a wonderful design vision how it should look like - please don't hesitate to share. I'm still looking for the style
 that matches the data.
 
@@ -56,6 +58,11 @@ that matches the data.
 
 If you find this project useful and would like to support it - please join [the support group](https://github.com/sponsors/anvaka).
 If you need any help with this project or have any questions - don't hesitate to open an issue here or ping me on [twitter](https://twitter.com/anvaka)
+
+Thank you to all my friends and supporters who helped me to get this project off the ground:
+Ryan, Andrey, Alex, Dmytro. You are awesome!
+
+Thank you to my dear daughter Louise for making a logo for this project. I love you!
 
 ## License
 

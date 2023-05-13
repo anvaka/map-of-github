@@ -6,6 +6,7 @@ import {getCustomLayer} from "./gl/createLinesCollection.js";
 import downloadGroupGraph from "./downloadGroupGraph.js";
 import getComplimentaryColor from "./getComplimentaryColor";
 import createLabelEditor from "./label-editor/createLabelEditor";
+import { createRadialGradient } from './gl/createRadialGradient';
 
 const primaryHighlightColor = "#bf2072";
 const secondaryHighlightColor = "#e56aaa";
@@ -85,6 +86,7 @@ export default function createMap() {
 
   map.on("load", () => {
     map.addLayer(fastLinesLayer, "circle-layer");
+    // map.addLayer(createRadialGradient(), "polygon-layer");
     labelEditor = createLabelEditor(map);
   });
 

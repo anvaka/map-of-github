@@ -165,7 +165,7 @@ export default {
       }
 
       self.previous = window.setTimeout(function() {
-        var p = window.fuzzySearcher.find(self.currentQuery);
+        var p = window.fuzzySearcher.find(self.currentQuery.toLowerCase());
 
         if (Array.isArray(p)) {
           self.suggestions = p.map(toOwnSuggestion);

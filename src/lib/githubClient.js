@@ -72,8 +72,19 @@ export async function getRepoInfo(repoName) {
         state: 'ERROR',
         error: 'Repository is unavailable due to legal reasons (http status code 451).',
       }
+    } else {
+      const errorMessage = ['HTTP error']
+      try {
+        const data = await response.json();
+        if (data?.message) errorMessage.push('Message: ' + data.message);
+      } catch (e) {/* ignore */}
+      errorMessage.push('Status: ' +  response.status);
+
+      return {
+        state: 'ERROR',
+        error: errorMessage.join('. '),
+      }
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
   const remainingRequests = response.headers.get('x-ratelimit-remaining');

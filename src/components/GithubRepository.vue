@@ -88,7 +88,9 @@ function fetchRepositoryInformation() {
     Object.assign(repoInfo, data);
   }).catch((err) => {
     // TODO: handle error, ask to sign in
+    repoInfo.state = 'ERROR';
     console.error(err);
+    repoInfo.name = props.name; // trigger readme fetch nonetheless
   });
   prevFetchRepositoryInformationCall = p;
 }

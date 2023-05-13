@@ -1,6 +1,28 @@
 <html>
 <head>
     <title>Map of Github OAuth Flow</title>
+    <style>
+      *,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  text-align: center;
+  line-height: 1.6;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+    </style>
 </head>
 <body>
    
@@ -10,6 +32,14 @@
       var key = parts[0];
       if (key === 'code') {
         exchangeCodeForToken(parts[1]);
+      } else if (key === 'error' && parts[1] === 'access_denied') {
+        if (window.opener) {
+          // tyey cancelled auth, close the window
+          window.close();
+        } else {
+          document.body.innerHTML = `<p>Oauth was cancelled</p>
+          Go to <a href='https://anvaka.github.io/map-of-github/'> https://anvaka.github.io/map-of-github/</a>`
+        }
       }
     });
 

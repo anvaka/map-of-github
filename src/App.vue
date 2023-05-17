@@ -6,7 +6,9 @@ import SmallPreview from './components/SmallPreview.vue';
 import About from './components/About.vue';
 import UnsavedChanges from './components/UnsavedChanges.vue';
 import LargestRepositories from './components/LargestRepositories.vue';
+import FocusRepository from './components/FocusRepository.vue';
 import GroupViewModel from './lib/GroupViewModel';
+import FocusViewModel from './lib/FocusViewModel';
 
 import bus from './lib/bus'
 
@@ -19,6 +21,7 @@ const tooltip = ref(null);
 const contextMenu = ref(null);
 const aboutVisible = ref(false);
 const currentGroup = ref(null);
+const currentFocus = ref(null);
 const unsavedChangesVisible = ref(false);
 const hasUnsavedChanges = ref(false);
 const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
@@ -50,7 +53,7 @@ function findProject(x) {
     center: [x.lat, x.lon],
     zoom: 12,
   }
-  window.mapOwner?.makeVisible(x.text, location);
+  window.mapOwner?.makeVisible(x.text, location, x.skipAnimation);
   currentProject.value = x.text;
 }
 
@@ -83,7 +86,8 @@ onBeforeUnmount(() => {
   bus.off('repo-selected', onRepoSelected);
   bus.off('show-tooltip', onShowTooltip);
   bus.off('show-context-menu', onShowContextMenu);
-  bus.off('show-largest', onShowLargest);
+  bus.off('show-largest-in-group', onShowLargestInGroup);
+  bus.off('focus-on-repo', onFocusOnRepo);
   bus.off('unsaved-changes-detected', onUnsavedChangesDetected);
   window.removeEventListener('resize', onResize);
 })
@@ -92,7 +96,8 @@ onBeforeMount(() => {
   bus.on('repo-selected', onRepoSelected);
   bus.on('show-context-menu', onShowContextMenu);
   bus.on('show-tooltip', onShowTooltip);
-  bus.on('show-largest', onShowLargest);
+  bus.on('show-largest-in-group', onShowLargestInGroup);
+  bus.on('focus-on-repo', onFocusOnRepo);
   bus.on('unsaved-changes-detected', onUnsavedChangesDetected);
   window.addEventListener('resize', onResize);
 });
@@ -106,14 +111,20 @@ function doContextMenuAction(menuItem) {
   menuItem.click();
 }
 
+function onFocusOnRepo(repo, groupId) {
+  const focusViewModel = new FocusViewModel(repo, groupId);
+  currentGroup.value = null;
+  currentFocus.value = focusViewModel;
+}
 
-function onShowLargest(groupId, largest) {
+function onShowLargestInGroup(groupId, largest) {
   let groupViewModel = groupCache.get(groupId);
   if (!groupViewModel) {
     groupViewModel = new GroupViewModel(groupId);
     groupCache.set(groupId, groupViewModel);
   }
   groupViewModel.setLargest(largest);
+  currentFocus.value = null;
   currentGroup.value = groupViewModel;
 }
 
@@ -124,6 +135,10 @@ function onUnsavedChangesDetected(hasChanges) {
 function closeLargestRepositories() {
   currentGroup.value = null
   window.mapOwner?.clearBorderHighlights();
+}
+
+function closeFocusView() {
+  currentFocus.value = null;
 }
 
 const typeAheadVisible = computed(() => {
@@ -148,10 +163,15 @@ function showUnsavedChanges() {
       </a>
     </div>
     <largest-repositories :repos="currentGroup" v-if="currentGroup"
-      class="largest-repositories"
+      class="right-panel"
       @selected="findProject"
       @close="closeLargestRepositories()"
     ></largest-repositories>
+    <focus-repository :vm="currentFocus" v-if="currentFocus"
+      class="right-panel"
+      @selected="findProject"
+      @close="closeFocusView()"
+    ></focus-repository>
     <github-repository :name="currentProject" v-if="currentProject"></github-repository>
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
       <type-ahead
@@ -219,7 +239,7 @@ function showUnsavedChanges() {
   transform: translate(-50%, calc(-100% - 12px));
 }
 
-.largest-repositories {
+.right-panel {
   position: fixed;
   right: 0;
   padding: 8px;
@@ -229,8 +249,6 @@ function showUnsavedChanges() {
   width: 400px;
   overflow: hidden;
   border-left: 1px solid var(--color-border);
-  display: grid;
-  grid-template-rows: minmax(0, 40%) minmax(0, 60%);
 }
 .unsaved-changes {
   position: absolute;
@@ -321,7 +339,7 @@ function showUnsavedChanges() {
 
 
 @media (max-width: 800px) {
-  .repo-viewer, .search-box, .largest-repositories {
+  .repo-viewer, .search-box, .right-panel {
     width: 45vw;
   }
   .search-box {
@@ -343,7 +361,7 @@ function showUnsavedChanges() {
     margin-top: 0;
     width: 100%;
   }
-  .largest-repositories {
+  .right-panel {
     width: 100%;
   }
 }

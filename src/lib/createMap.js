@@ -101,32 +101,21 @@ export default function createMap() {
       left: e.point.x + "px", 
       top: e.point.y + "px" 
     };
-    contextMenuItems.items.push({
-      text: "Show largest projects",
-      click: () => {
-        let seen = new Map();
-        let largeRepositories = map.querySourceFeatures("points-source", {
-            sourceLayer: "points",
-            filter: ["==", "parent", bg.id]
-        }).sort((a, b) => {
-          return b.properties.size - a.properties.size;
-        });
-        for (let repo of largeRepositories) {
-          let v = {
-            name: repo.properties.label,
-            lngLat: repo.geometry.coordinates,
-          }
-          if (seen.has(repo.properties.label)) continue;
-          seen.set(repo.properties.label, v);
-          if (seen.size >= 100) break;
+
+    contextMenuItems.items.push(showLargestProjectsContextMenuItem(bg));
+
+    const nearestCity = findNearestCity(e.point);
+    if (nearestCity) {
+      const name = nearestCity.properties.label;
+      contextMenuItems.items.push({
+        text: "Explore around " + name,
+        click: () => {
+          showDetails(nearestCity);
+          drawBackgroundEdges(e.point, name);
+          bus.fire('focus-on-repo', name, bg.id);
         }
-        
-        map.setFilter("border-highlight", ["==", ["id"], bg.id]);
-        map.setLayoutProperty("border-highlight", "visibility", "visible");
-        // todo: fire a view model here instead of the list.
-        bus.fire("show-largest", bg.id, Array.from(seen.values()));
-      }
-    });
+      });
+    }
 
     bus.fire("show-context-menu", contextMenuItems);
   });
@@ -152,9 +141,7 @@ export default function createMap() {
     if (!nearestCity) return;
     const repo = nearestCity.properties.label
     if (!repo) return;
-    const [lat, lon] = nearestCity.geometry.coordinates
-    bus.fire("show-tooltip");
-    bus.fire("repo-selected", { text: repo, lat, lon });
+    showDetails(nearestCity);
 
     const includeExternal = e.originalEvent.altKey;
     drawBackgroundEdges(e.point, repo, !includeExternal);
@@ -170,6 +157,43 @@ export default function createMap() {
     clearHighlights,
     clearBorderHighlights,
     getPlacesGeoJSON,
+  }
+
+  function showDetails(nearestCity) {
+    const repo = nearestCity.properties.label
+    if (!repo) return;
+    const [lat, lon] = nearestCity.geometry.coordinates
+    bus.fire("show-tooltip");
+    bus.fire("repo-selected", { text: repo, lat, lon });
+  }
+
+  function showLargestProjectsContextMenuItem(bg) {
+    return {
+        text: "Show largest projects",
+        click: () => {
+          let seen = new Map();
+          let largeRepositories = map.querySourceFeatures("points-source", {
+              sourceLayer: "points",
+              filter: ["==", "parent", bg.id]
+          }).sort((a, b) => {
+            return b.properties.size - a.properties.size;
+          });
+          for (let repo of largeRepositories) {
+            let v = {
+              name: repo.properties.label,
+              lngLat: repo.geometry.coordinates,
+            }
+            if (seen.has(repo.properties.label)) continue;
+            seen.set(repo.properties.label, v);
+            if (seen.size >= 100) break;
+          }
+          
+          map.setFilter("border-highlight", ["==", ["id"], bg.id]);
+          map.setLayoutProperty("border-highlight", "visibility", "visible");
+          // todo: fire a view model here instead of the list.
+          bus.fire("show-largest-in-group", bg.id, Array.from(seen.values()));
+        }
+    }
   }
 
   function getPlacesGeoJSON() {
@@ -189,8 +213,12 @@ export default function createMap() {
     map.redraw();
   }
 
-  function makeVisible(repository, location) {
-    map.flyTo(location);
+  function makeVisible(repository, location, disableAnimation = false) {
+    if (disableAnimation) {
+      map.jumpTo(location);
+    } else {
+      map.flyTo(location)
+    }
     map.once("moveend", () => {
       drawBackgroundEdges(location.center, repository);
     });

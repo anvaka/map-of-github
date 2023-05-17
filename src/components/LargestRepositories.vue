@@ -26,7 +26,7 @@ function getLink(repo) {
 
 </script>
 <template>
-  <div>
+  <div class="group-view-container">
     <div class="names-container">
       <h2><a class='search-submit' href='#' @click.prevent='closePanel()'>
   <!-- Icon copyright (c) 2013-2017 Cole Bemis: https://github.com/feathericons/feather/blob/master/LICENSE -->
@@ -49,6 +49,10 @@ function getLink(repo) {
   </div>
 </template>
 <style scoped>
+.group-view-container {
+  display: grid;
+  grid-template-rows: minmax(0, 40%) minmax(0, 60%);
+}
 .names-container {
   display: flex;
   flex-direction: column;

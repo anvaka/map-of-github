@@ -106,9 +106,12 @@ export default function createMap() {
 
     const nearestCity = findNearestCity(e.point);
     if (nearestCity) {
-      const name = nearestCity.properties.label;
+      let name = nearestCity.properties.label;
+      let parts = name.split('/')
+      const displayName = parts[parts.length - 1] || name;
+
       contextMenuItems.items.push({
-        text: "Explore around " + name,
+        text: "List connections of " + displayName,
         click: () => {
           showDetails(nearestCity);
           drawBackgroundEdges(e.point, name);

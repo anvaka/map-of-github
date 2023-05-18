@@ -10,7 +10,9 @@ export default class FocusViewModel {
     this.name = repositoryName;
     this.repos = ref([]);
     this.lngLat = ref(null);
+    this.loading = ref(true);
     downloadGroupGraph(groupId).then(graph => {
+      this.loading.value = false;
       let neighgbors = [];
       this.lngLat.value = graph.getNode(repositoryName)?.data.l;
       graph.forEachLinkedNode(repositoryName, (node, link) => {

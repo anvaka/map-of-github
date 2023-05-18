@@ -33,8 +33,11 @@ function getLink(repo) {
       <h2>
         <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
       </h2>
-      <h3>
-        Direct neighbors ({{vm.repos.length}})
+      <h3 v-if="!vm.loading">
+        Direct connections ({{vm.repos.length}})
+      </h3>
+      <h3 v-else>
+        Loading...
       </h3>
     </div>
     <a class='close-btn' href='#' @click.prevent='closePanel()'>

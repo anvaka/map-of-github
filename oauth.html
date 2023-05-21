@@ -1,0 +1,72 @@
+<html>
+<head>
+    <title>Map of Github OAuth Flow</title>
+    <style>
+      *,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  text-align: center;
+  line-height: 1.6;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+    </style>
+</head>
+<body>
+   
+  <script>
+    window.location.search.substring(1).split('&').forEach(function (pair) {
+      var parts = pair.split('=');
+      var key = parts[0];
+      if (key === 'code') {
+        exchangeCodeForToken(parts[1]);
+      } else if (key === 'error' && parts[1] === 'access_denied') {
+        if (window.opener) {
+          // tyey cancelled auth, close the window
+          window.close();
+        } else {
+          document.body.innerHTML = `<p>Oauth was cancelled</p>
+          Go to <a href='https://anvaka.github.io/map-of-github/'> https://anvaka.github.io/map-of-github/</a>`
+        }
+      }
+    });
+
+    function exchangeCodeForToken(code) {
+      var isDev = window.location.hostname !== 'anvaka.github.io';
+      var clientId = isDev ? '244bf05034e7cf9158cc' : '5f5bbe0c2623f5a7e738';
+      const apiGatewayEndpoint = 'https://1xc2uuk51c.execute-api.us-east-1.amazonaws.com/Prod/github-oauth/?client=' + clientId + '&code=' + code;
+      fetch(apiGatewayEndpoint, {headers: {"Content-Type": "application/json"}})
+        .then(r => r.json())
+        .then(function (data) {
+          console.log(data);
+          if (data.access_token) {
+            document.cookie = 'github_token=' + data.access_token;
+          }
+          if (window.opener) {
+            data.source = 'gh_auth';
+            window.opener.postMessage(data, '*');
+            window.close();
+          } else {
+            // go to the index page:
+            window.location.href = 'index.html';
+          }
+        })
+        .catch(function (err) {
+          console.error(err);
+        });
+      }
+  </script>
+</body>
+</html>

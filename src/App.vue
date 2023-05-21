@@ -149,6 +149,15 @@ function showUnsavedChanges() {
   unsavedChangesVisible.value = true;
 }
 
+async function listCurrentConnections() {
+  let groupId = await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon);
+  if (groupId !== undefined) {
+    const focusViewModel = new FocusViewModel(lastSelected.text, groupId);
+    currentGroup.value = null;
+    currentFocus.value = focusViewModel;
+  }
+}
+
 </script>
 
 <template>
@@ -172,7 +181,7 @@ function showUnsavedChanges() {
       @selected="findProject"
       @close="closeFocusView()"
     ></focus-repository>
-    <github-repository :name="currentProject" v-if="currentProject"></github-repository>
+    <github-repository :name="currentProject" v-if="currentProject" @listConnections="listCurrentConnections()"></github-repository>
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
       <type-ahead
         placeholder="Find Project"
@@ -363,6 +372,13 @@ function showUnsavedChanges() {
   }
   .right-panel {
     width: 100%;
+  }
+  .neighbors-container {
+    height: 30%;
+    top: 70%;
+    z-index: 2;
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 4px rgba(0,0,0,0.42);
   }
 }
 

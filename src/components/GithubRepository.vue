@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, watch, onBeforeUnmount, ref} from 'vue';
+import { computed, reactive, watch, onBeforeUnmount, ref, defineEmits} from 'vue';
 import {getRepoInfo, getReadme, setAuthToken, getCurrentUser} from '../lib/githubClient.js';
 const props = defineProps({
   name: {
@@ -8,6 +8,7 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(['listConnections']);
 const repoLink = computed(() => {
   return `https://github.com/` + props.name;
 });
@@ -134,6 +135,10 @@ window.addEventListener('message', receiveMessage);
 onBeforeUnmount(() => {
   window.removeEventListener('message', receiveMessage);
 });
+
+function listConnections() {
+  emit('listConnections');
+}
 </script>
 
 <template>
@@ -163,6 +168,9 @@ onBeforeUnmount(() => {
           <a v-for="tag in repoInfo.topics" :key="tag" class="tag" :href="'https://github.com/topics/' + tag" target="_blank">{{ tag }}</a>
         </div>
       </div>
+      <div class="actions row">
+        <a href="#" @click.prevent="listConnections()">List connections</a>
+      </div>
       <div v-if="repoInfo.state === 'LOADING'" class="loading">
         Loading description...
       </div>
@@ -184,8 +192,8 @@ onBeforeUnmount(() => {
            Please try again at {{ repoInfo.retryIn }}.
         </p>
       </div>
-      <div class="readme-content">
-        <div v-if="readmeInfo.state === 'LOADED'" v-html="readmeInfo.content" >
+      <div class="readme-content" v-if="readmeInfo.state === 'LOADED'">
+        <div v-html="readmeInfo.content" >
         </div>
       </div>
     </div>
@@ -255,6 +263,27 @@ h2 a {
   color: var(--critical-call-to-action);
 }
 
+.actions {
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  height: 32px;
+  align-items: stretch;
+}
+.actions a {
+  align-items: center;
+  display: flex;
+  background: var(--color-background-mute);
+  padding: 0 8px;
+  flex: 1;
+  justify-content: center;
+}
+.not-found {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
 
 @media (min-width: 1024px) {
   .greetings h1,
@@ -266,9 +295,9 @@ h2 a {
 
 
 <style>
+
 .readme-content {
   border-top: 1px solid var(--color-border);
-  margin-top: 12px;
   padding-top: 8px;
   overflow-x: hidden;
 }

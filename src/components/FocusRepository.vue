@@ -26,29 +26,29 @@ function getLink(repo) {
 
 </script>
 <template>
-  <div>
+  <div class="neighbors-container">
     <div class="names-container">
-  <div class="header-container">
-    <div class="header">
-      <h2>
-        <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
-      </h2>
-      <h3 v-if="!vm.loading">
-        Direct connections ({{vm.repos.length}})
-      </h3>
-      <h3 v-else>
-        Loading...
-      </h3>
-    </div>
-    <a class='close-btn' href='#' @click.prevent='closePanel()'>
-      <!-- Icon copyright (c) 2013-2017 Cole Bemis: https://github.com/feathericons/feather/blob/master/LICENSE -->
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle">
-        <circle cx="12" cy="12" r="10"></circle>
-          <line x1="15" y1="9" x2="9" y2="15"></line>
-          <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-    </a>
-  </div>
+      <div class="header-container">
+        <div class="header">
+          <h2>
+            <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
+          </h2>
+          <h3 v-if="!vm.loading">
+            Direct connections ({{vm.repos.length}})
+          </h3>
+          <h3 v-else>
+            Loading...
+          </h3>
+        </div>
+        <a class='close-btn' href='#' @click.prevent='closePanel()'>
+          <!-- Icon copyright (c) 2013-2017 Cole Bemis: https://github.com/feathericons/feather/blob/master/LICENSE -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle">
+            <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        </a>
+      </div>
   
       <ul v-if="vm.repos">
         <li v-for="repo in vm.repos" :key="repo.name">

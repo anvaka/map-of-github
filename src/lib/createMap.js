@@ -149,6 +149,7 @@ export default function createMap() {
     const includeExternal = e.originalEvent.altKey;
     drawBackgroundEdges(e.point, repo, !includeExternal);
   });
+  const bordersCollection = fetch(config.bordersSource).then((res) => res.json());
 
   return {
     map,
@@ -160,6 +161,24 @@ export default function createMap() {
     clearHighlights,
     clearBorderHighlights,
     getPlacesGeoJSON,
+    getGroupIdAt
+  }
+
+  function getGroupIdAt(lat, lon) {
+    // find first group that contains the point.
+    return bordersCollection.then((collection) => {
+      const feature = collection.features.find((f) => {
+        return polygonContainsPoint(f.geometry.coordinates[0], lat, lon);
+      });
+      if (!feature) return;
+      const id = feature.id;
+      return id;
+    });
+
+    // const res = map.querySourceFeatures('borders-source').find((f) => {
+    //   return polygonContainsPoint(f.geometry.coordinates[0], lat, lon);
+    // });
+    // return res?.id;
   }
 
   function showDetails(nearestCity) {
@@ -543,4 +562,15 @@ function getPolygonFillColor(polygonProperties) {
     }
   }
   return polygonProperties.fill;
+}
+function polygonContainsPoint(ring, pX, pY) {
+    let c = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const p1 = ring[i];
+        const p2 = ring[j];
+        if (((p1[1] > pY) !== (p2[1] > pY)) && (pX < (p2[0] - p1[0]) * (pY - p1[1]) / (p2[1] - p1[1]) + p1[0])) {
+            c = !c;
+        }
+    }
+    return c;
 }

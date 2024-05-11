@@ -1,6 +1,6 @@
 <script setup>
 import {ref, onBeforeUnmount, onBeforeMount, computed} from 'vue';
-import TypeAhead from './components/TypeAhead.vue';
+import TypeAhead from './components/Typeahead.vue';
 import GithubRepository from './components/GithubRepository.vue';
 import SmallPreview from './components/SmallPreview.vue';
 import About from './components/About.vue';

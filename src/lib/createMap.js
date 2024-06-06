@@ -97,9 +97,9 @@ export default function createMap() {
       if (error) throw error;
       map.addImage('triangle-icon', image, { 'sdf': true });
     })
-    map.loadImage(config.iconSource + '/polygon.png', (error, image) => {
+    map.loadImage(config.iconSource + '/star.png', (error, image) => {
       if (error) throw error;
-      map.addImage('polygon-icon', image, { 'sdf': true });
+      map.addImage('star-icon', image, { 'sdf': true });
     })
     map.addLayer(fastLinesLayer, "circle-layer");
     // map.addLayer(createRadialGradient(), "polygon-layer");
@@ -502,7 +502,7 @@ function getDefaultStyle() {
             'icon-image': [
               "case",
               [">=", ["to-number", ["get", 'complexity']], 4],
-              "polygon-icon",
+              "star-icon",
               [">=", ["to-number", ["get", 'complexity']], 3],
               "diamond-icon",
               [">=", ["to-number", ["get", 'complexity']], 2],

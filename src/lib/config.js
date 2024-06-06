@@ -1,7 +1,8 @@
 const hostName = window.location.hostname;
 const isDev = hostName !== 'anvaka.github.io';
-const server = 'https://anvaka.github.io/map-of-github-data/';
-const version = 'v1';
+// const server = 'https://anvaka.github.io/map-of-github-data/';
+const server = 'http://localhost:3010/data';
+const version = '/v1';
 
 export default {
   serverUrl: '',
@@ -10,7 +11,7 @@ export default {
   glyphsSource: `${server}/fonts/{fontstack}/{range}.pbf`,
   bordersSource: `${server}${version}/borders.geojson`,
   placesSource: `${server}${version}/places.geojson`,
-
+  iconSource: `${server}${version}/icon`,
   namesEndpoint: `${server}${version}/names`,
   graphsEndpoint: `${server}${version}/graphs`,
 };

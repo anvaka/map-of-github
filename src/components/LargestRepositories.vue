@@ -9,19 +9,20 @@ const props = defineProps({
 });
 const emit = defineEmits(['selected', 'close']);
 
-function showDetails(repo) {
+  function showDetails(repo) {
   emit("selected", {
     text: repo.name,
     lon: repo.lngLat[1],
     lat: repo.lngLat[0],
+    id: repo.id
   });
 }
 function closePanel() {
   emit("close");
 }
 
-function getLink(repo) {
-  return 'https://github.com/' + repo.name;
+function getLink(repo) { 
+  return 'https://boardgamegeek.com/boardgame/' + repo.id;
 }
 
 </script>

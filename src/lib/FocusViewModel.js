@@ -19,7 +19,8 @@ export default class FocusViewModel {
         neighgbors.push({
           name: node.id,
           lngLat: node.data.l,
-          isExternal: !!(link.data?.e)
+          isExternal: !!(link.data?.e),
+          id: node.data.id
         });
       });
       

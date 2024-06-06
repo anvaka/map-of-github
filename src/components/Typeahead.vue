@@ -242,7 +242,8 @@ function toOwnSuggestion(x) {
     text: x.text,
     html: x.html,
     lon: x.lon,
-    lat: x.lat
+    lat: x.lat,
+    id: x.id
   };
 }
 </script>

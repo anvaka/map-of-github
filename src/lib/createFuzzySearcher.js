@@ -27,7 +27,7 @@ export default function createFuzzySearcher() {
       const p = dedupingFetch(`${config.namesEndpoint}/${cacheKey}.json`).then(data => {
         data.forEach(word => {
           if (!seenWords.has(word[0])) {
-            words.push({name: word[0], lat: word[1], lon: word[2]});
+            words.push({name: word[0], lat: word[1], lon: word[2], id: word[3]});
             seenWords.add(word[0]);
           }
         });
@@ -54,6 +54,7 @@ export default function createFuzzySearcher() {
         text: x.target,
         lat: x.obj.lat,
         lon: x.obj.lon,
+        id: x.obj.id
       }));
     }); 
   }

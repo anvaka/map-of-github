@@ -9,6 +9,7 @@ const props = defineProps({
 const emit = defineEmits(['selected', 'close']);
 
 function showDetails(repo, event) {
+  
   emit("selected", {
     text: repo.name,
     lon: repo.lngLat[1],
@@ -21,7 +22,9 @@ function closePanel() {
 }
 
 function getLink(repo) {
-  return 'https://github.com/' + repo.name;
+  // console.log("repo : ",repo);
+  // console.log("vm : ",vm);
+  return 'https://boardgamegeek.com/boardgame/' + repo.id;
 }
 
 </script>
@@ -31,7 +34,7 @@ function getLink(repo) {
       <div class="header-container">
         <div class="header">
           <h2>
-            <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
+            <a :href="getLink(vm)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
           </h2>
           <h3 v-if="!vm.loading">
             Direct connections ({{vm.repos.length}})

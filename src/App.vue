@@ -16,6 +16,7 @@ const SM_SCREEN_BREAKPOINT = 600;
 
 const sidebarVisible = ref(false);
 const currentProject = ref(''); 
+const currentId = ref(''); 
 const smallPreviewName = ref('');
 const tooltip = ref(null);
 const contextMenu = ref(null);
@@ -54,7 +55,9 @@ function findProject(x) {
     zoom: 12,
   }
   window.mapOwner?.makeVisible(x.text, location, x.skipAnimation);
+ // console.log(x)
   currentProject.value = x.text;
+  currentId.value = x.id
 }
 
 function onRepoSelected(repo) {
@@ -65,6 +68,7 @@ function onRepoSelected(repo) {
     currentProject.value = null;
   } else {
     currentProject.value = repo.text;
+    currentId.value = repo.id
   }
 }
 
@@ -150,6 +154,7 @@ function showUnsavedChanges() {
 }
 
 async function listCurrentConnections() {
+  //console.log("listCurrentConnections");
   let groupId = await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon);
   if (groupId !== undefined) {
     const focusViewModel = new FocusViewModel(lastSelected.text, groupId);
@@ -167,9 +172,10 @@ async function listCurrentConnections() {
     </div>
     <div class="made-by">
       Made by
-      <a class="normal" aria-label="Made by @anvaka" target="_blank" href="https://github.com/sponsors/anvaka">
-        @anvaka
+      <a class="normal" aria-label="Made by Toucan4Life, inspired by @anvaka" target="_blank" href="https://github.com/Toucan4Life">
+        Toucan4Life,
       </a>
+      inspired by @anvaka
     </div>
     <largest-repositories :repos="currentGroup" v-if="currentGroup"
       class="right-panel"
@@ -181,7 +187,7 @@ async function listCurrentConnections() {
       @selected="findProject"
       @close="closeFocusView()"
     ></focus-repository>
-    <github-repository :name="currentProject" v-if="currentProject" @listConnections="listCurrentConnections()"></github-repository>
+    <github-repository :name="currentProject" :id="currentId" v-if="currentProject" @listConnections="listCurrentConnections()"></github-repository>
     <form @submit.prevent="onSubmit" class="search-box" v-if="typeAheadVisible">
       <type-ahead
         placeholder="Find Project"

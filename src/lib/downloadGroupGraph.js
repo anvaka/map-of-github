@@ -8,8 +8,8 @@ export default async function downloadGroupGraph(groupId) {
     return graphsCache.get(groupId);
   }
   // let graph = createGraph();
-
-  let response = await fetch(`${config.graphsEndpoint}/${groupId}.graph.dot`);
+  //console.log("In downloadGroupGraph")
+  let response = await fetch(`${config.graphsEndpoint}/${groupId}.dot`);
   let text = await response.text();
 
   let fromDot = await import('ngraph.fromdot');

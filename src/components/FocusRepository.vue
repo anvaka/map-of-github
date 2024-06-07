@@ -9,12 +9,12 @@ const props = defineProps({
 const emit = defineEmits(['selected', 'close']);
 
 function showDetails(repo, event) {
-  
   emit("selected", {
     text: repo.name,
     lon: repo.lngLat[1],
     lat: repo.lngLat[0],
-    skipAnimation: event.altKey
+    skipAnimation: event.altKey,
+    id: repo.id
   });
 }
 function closePanel() {

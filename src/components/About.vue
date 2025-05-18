@@ -42,9 +42,20 @@ onBeforeUnmount(() => {
         project has received.
       </p>
       <p>
-        The map has more than <b>400,000</b> projects, clustered into <b>1,100</b> countries.
-        I'm looking for help from the community to improve the map. If you have
-        good names for countries, right click on a map and give them name, send a pull request to me.
+        The map has approximately <b>690,000</b> projects, clustered into <b>1,500</b> countries. The map is build
+        based on 500 million stars given to GitHub projects between 2011 and end of April, 2025.
+      </p>
+      <h2>Map Versions</h2>
+      <p>
+        If you are looking for a different version of this map you can find it here:
+        <ul>
+          <li>
+            <a href="?" class="normal">Current release (2025)</a>
+          </li>
+          <li>
+            <a href="?v=v1" class="normal">First release (2023)</a>
+          </li>
+        </ul>
       </p>
       <h2>Credits</h2>
       <p>
@@ -53,7 +64,8 @@ onBeforeUnmount(() => {
       </p>
       <h2>Support</h2>
       <p>
-        If you love this project, please consider supporting it on <a href="https://github.com/sponsors/anvaka" class='normal'>GitHub</a>.
+        If you love this project, please consider supporting it on <a href="https://github.com/sponsors/anvaka" class='normal'>GitHub</a> or
+        <a href="https://www.paypal.com/paypalme/anvakos/5" class='normal'>PayPal</a>.
         Follow me on <a href="https://twitter.com/anvaka" class='normal'>Twitter</a> for updates. The source code is <a href="https://github.com/anvaka/map-of-github" class='normal'>here</a>.
       </p>
       <p>

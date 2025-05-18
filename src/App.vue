@@ -24,8 +24,10 @@ const currentGroup = ref(null);
 const currentFocus = ref(null);
 const unsavedChangesVisible = ref(false);
 const hasUnsavedChanges = ref(false);
-const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT)
+const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT);
+const supportMessageVisible = ref(false);
 let lastSelected;
+let supportMessageTimer;
 
 function onTypeAheadInput() {
 }
@@ -90,6 +92,7 @@ onBeforeUnmount(() => {
   bus.off('focus-on-repo', onFocusOnRepo);
   bus.off('unsaved-changes-detected', onUnsavedChangesDetected);
   window.removeEventListener('resize', onResize);
+  if (supportMessageTimer) clearTimeout(supportMessageTimer);
 })
 
 onBeforeMount(() => {
@@ -100,6 +103,11 @@ onBeforeMount(() => {
   bus.on('focus-on-repo', onFocusOnRepo);
   bus.on('unsaved-changes-detected', onUnsavedChangesDetected);
   window.addEventListener('resize', onResize);
+  
+  // Show support message after a delay
+  supportMessageTimer = setTimeout(() => {
+    supportMessageVisible.value = true;
+  }, 10000); // Show after 10 seconds
 });
 
 function onResize() {
@@ -171,6 +179,11 @@ async function listCurrentConnections() {
         @anvaka
       </a>
     </div>
+    <div class="top-right-support" v-if="supportMessageVisible && !aboutVisible && !smallPreviewName && !currentGroup && !currentFocus">
+      <span class="close-support" @click="supportMessageVisible = false">×</span>
+      Enjoying this map? <br>
+      <a href='https://www.paypal.com/paypalme/anvakos/5' target="_blank">Support the author</a>
+    </div>
     <largest-repositories :repos="currentGroup" v-if="currentGroup"
       class="right-panel"
       @selected="findProject"
@@ -222,6 +235,53 @@ async function listCurrentConnections() {
 }
 .made-by a {
   color: hsla(160, 100%, 37%, 1);
+}
+
+.top-right-support {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  padding: 8px 16px;
+  font-size: 14px;
+  z-index: 10;
+  max-width: 200px;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+  border: 1px solid var(--color-border);
+}
+
+.close-support {
+  position: absolute;
+  top: -6px;
+  left: -8px;
+  cursor: pointer;
+  opacity: 1;
+  font-size: 12px;
+  border-radius: 8px;
+  line-height: 6px;
+  padding: 4px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+}
+
+.close-support:hover {
+  opacity: 1;
+}
+
+.top-right-support a {
+  color: var(--color-link-hover);
+  text-decoration: none;
+}
+
+.top-right-support a:hover {
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .search-box {
@@ -360,8 +420,33 @@ async function listCurrentConnections() {
     left: 0;
     top: 48px
   }
+  .top-right-support {
+    right: 0;
+    top: 0;
+  }
+
+  .close-support {
+    top: unset;
+    bottom: -6px;
+    left: -8px;
+  }
 }
 @media (max-width: 600px) {
+  .top-right-support {
+    top: unset;
+    right: unset;
+    left: 16px;
+    bottom: 36px;
+    font-size: 12px;
+  }
+
+  .close-support {
+    bottom: unset;
+    left: unset;
+    top: -6px;
+    right: -8px;
+  }
+
   .repo-viewer {
     width: 100%;
   }
@@ -379,6 +464,13 @@ async function listCurrentConnections() {
     z-index: 2;
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -4px 4px rgba(0,0,0,0.42);
+  }
+
+  .top-right-support {
+    right: unset;
+    top: unset;
+    bottom: 0;
+    left: 0;
   }
 }
 

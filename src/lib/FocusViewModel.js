@@ -13,17 +13,22 @@ export default class FocusViewModel {
     this.loading = ref(true);
     downloadGroupGraph(groupId).then(graph => {
       this.loading.value = false;
-      let neighgbors = [];
+      let neighbors = [];
       this.lngLat.value = graph.getNode(repositoryName)?.data.l;
+      let seen = new Set();
       graph.forEachLinkedNode(repositoryName, (node, link) => {
-        neighgbors.push({
+        if (seen.has(node.id)) {
+          return;
+        }
+        seen.add(node.id);
+        neighbors.push({
           name: node.id,
           lngLat: node.data.l,
           isExternal: !!(link.data?.e)
         });
       });
       
-      neighgbors.sort((a, b) => {
+      neighbors.sort((a, b) => {
         if (a.isExternal && !b.isExternal) {
           return 1;
         } else if (!a.isExternal && b.isExternal) {
@@ -33,7 +38,7 @@ export default class FocusViewModel {
         }
       });
 
-      this.repos.value = neighgbors;
+      this.repos.value = neighbors;
     });
   }
 }

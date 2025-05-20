@@ -238,6 +238,7 @@ async function listCurrentConnections() {
 }
 
 .top-right-support {
+  opacity: 0.2;
   position: fixed;
   top: 16px;
   right: 16px;
@@ -248,8 +249,12 @@ async function listCurrentConnections() {
   z-index: 10;
   max-width: 200px;
   text-align: center;
-  animation: fadeIn 0.5s ease;
+  animation: fadeLittleIn 0.5s ease;
   border: 1px solid var(--color-border);
+}
+
+.top-right-support:hover {
+  opacity: 1;
 }
 
 .close-support {
@@ -277,6 +282,11 @@ async function listCurrentConnections() {
 
 .top-right-support a:hover {
   text-decoration: underline;
+}
+
+@keyframes fadeLittleIn {
+  from { opacity: 0; }
+  to { opacity: 0.2; }
 }
 
 @keyframes fadeIn {
@@ -438,6 +448,7 @@ async function listCurrentConnections() {
     left: 16px;
     bottom: 36px;
     font-size: 12px;
+    opacity: 0.4;
   }
 
   .close-support {

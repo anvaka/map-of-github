@@ -16,6 +16,7 @@
     "marked": "^4.3.0",
     "ngraph.events": "^1.2.2",
     "ngraph.fromdot": "^7.0.0",
+    "ngraph.graph": "^20.0.1",
     "vue": "^3.2.47",
     "w-gl": "^0.21.0"
   },

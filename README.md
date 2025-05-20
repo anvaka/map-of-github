@@ -1,6 +1,6 @@
 # Map of GitHub
 
-This is a map of 400,000+ GitHub projects. Each dot is a project. Dots are close to each other if they have a lot of common
+This is a map of 690,000+ GitHub projects. Each dot is a project. Dots are close to each other if they have a lot of common
 stargazers.
 
 <div align="center">
@@ -10,12 +10,16 @@ stargazers.
   <i>Logo by Louise Kashcha, 9 years old. Thank you ❤️</i> 
 </div>
 
+## Map releases
+- [Current release, May 10, 2025](https://anvaka.github.io/map-of-github/) - 690K projects, 1.5K clusters
+- [Initial release, May 8, 2023](https://anvaka.github.io/map-of-github/?v=v1) - 400K projects, 1K clusters
+
 ## How was it made?
 
 [![current map](public/current-map.png)](https://anvaka.github.io/map-of-github/)
 
 The first step was to fetch who gave stars to which repositories. For this I used a public data set of github activity events on 
-Google BigQuery, considering only events between Jan 2020 and March 2023. This gave me more than 350 million stars.
+Google BigQuery, considering events between Feb 2011 and May 2025. This gave me around 500 million stars.
 (Side note: Mind blowing to think that Milky Way has more than 100 billion stars)
 
 In the second phase I computed exact [Jaccard Similarity](https://en.wikipedia.org/wiki/Jaccard_index) between each repository. 
@@ -23,7 +27,7 @@ For my home computer's 24GB RAM this was too much, however an AWS EC2 instance w
 (Side note: I tried other similarities too, but Jaccard gave the most believable results)
 
 In the third phase I used a few clustering algorithms to split repositories together. I liked [Leiden clustering](https://www.nature.com/articles/s41598-019-41695-z)
-the best and ended up with 1000+ clusters.
+the best and ended up with 1,500+ clusters with ~690K projects.
 
 In the fourth phase I used my own [ngraph.forcelayout](https://github.com/anvaka/ngraph.forcelayout) to compute layouts of nodes
 inside clusters, and a separate configuration to get global layout of clusters.
@@ -37,11 +41,38 @@ with [tippecanoe](https://github.com/mapbox/tippecanoe) and configure the browsi
 A lot of country labels were generated with help of ChatGPT. If you find something wrong, you can right click it, edit, and send
 a pull request - I'd be grateful.
 
-The query that I used to generate labels was:
+The query that I used to generate labels was twofold. First I setup the system prompt to be:
 
-```
-Please analyze these repository and detect a common theme (e.g. programming language, technology, domain). Pay attention to language too (english, chinese, korean, etc.). If there is no common theme found, please say so. Otherwise, If you can find a strong signal for a common theme please come up with a specific name for imaginary country that contains all these repositories. Give a few options. When you give an option prefer more specific over generic option (for example if repositories are about recommender systems, use that, instead of generic DeepLearning)
-```
+> You are a master namer of programming communities. Your task is to create a unique, specific, and memorable name for a "country" of GitHub repositories based on their common themes, technologies, or purposes.
+>
+> The name should be:
+> 1. Concise (1-3 words maximum)
+> 2. Distinctive and specific to these particular repositories
+> 3. Capture the unique essence of this specific collection
+> 4. AVOID generic terms like "JSWorld", "UI", "Web", "Forge", "Archipelago", "Hub", "Republic", "Nexus", etc.
+> 5. Creative but immediately understandable
+> 6. If repositories are focused on a specific language, framework, or domain, the name should reflect this specificity
+> 7. IMPORTANT: If two repositories are similar, DO NOT combine their names (e.g., avoid "NodeNexus" if there's also a "Node Nexus")
+> 8. Use strong imagery and metaphors (e.g., "Anvil Force" for build tools, "Circuit Citadel" for hardware libs)
+> 9. For collections with a clear theme or purpose, choose a name that evokes that specific technology or domain
+> 
+> Each name must be HIGHLY DISTINCT from all other countries. Imagine this name appearing on a map - it should be instantly recognizable.
+>
+> Only return the name itself without explanations or quotes - just the raw name.
+
+Second the user input was:
+
+> Name a country containing these GitHub repositories: `repoList`.
+> Repository names without owners: `repoNamesOnly`
+>
+> Please analyze the specific themes, technologies, and unique aspects of these repositories to create a distinct name that wouldn't apply to other programming communities.
+> 
+> The name should be distinctive and not easily confused with other country names on a map.
+
+If LLM returned a name that was too close to previous names, I would ask it to try again and increase the temperature to be more creative.
+
+I liked the results very much: It is fun to explore the map, discover the land, and peer into their meaning.
+
 
 ## Geocoding?
 

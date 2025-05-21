@@ -8,6 +8,7 @@ import downloadGroupGraph from './downloadGroupGraph';
 export default class FocusViewModel {
   constructor(repositoryName, groupId) {
     this.name = repositoryName;
+    this.groupId = groupId;
     this.repos = ref([]);
     this.lngLat = ref(null);
     this.loading = ref(true);

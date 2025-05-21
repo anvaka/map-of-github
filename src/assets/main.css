@@ -41,12 +41,20 @@ a:hover, a:focus,
 @media (min-width: 1024px) {
 }
 
-#map {
+#map, .subgraph-viewer {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.subgraph-viewer {
+  pointer-events: none;
+}
+
+.subgraph-viewer.active {
+  pointer-events: auto;
 }
 
 .label-marker{

@@ -15,6 +15,7 @@
     "maplibre-gl": "^2.4.0",
     "marked": "^4.3.0",
     "ngraph.events": "^1.2.2",
+    "ngraph.forcelayout": "^3.3.1",
     "ngraph.fromdot": "^7.0.0",
     "ngraph.graph": "^20.0.1",
     "vue": "^3.2.47",

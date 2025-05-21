@@ -1,5 +1,6 @@
 <script setup>
-import {defineProps, defineEmits, computed} from 'vue';
+import {defineProps, defineEmits, ref} from 'vue';
+import {buildLocalNeighborsGraphForGroup} from '../lib/downloadGroupGraph';
 const props = defineProps({
   vm: {
     type: Object,
@@ -7,6 +8,7 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(['selected', 'close']);
+const expandingGraph = ref(false);
 
 function showDetails(repo, event) {
   emit("selected", {
@@ -24,6 +26,37 @@ function getLink(repo) {
   return 'https://github.com/' + repo.name;
 }
 
+// Fetch and display expanded graph with neighbors up to specified depth
+async function expandGraph() {
+  if (expandingGraph.value) return; // Prevent multiple clicks
+  
+  expandingGraph.value = true;
+  try {
+    const repositoryName = props.vm.name;
+    const groupId = props.vm.groupId;
+    
+    // Depth of 2 gives immediate neighbors and their neighbors
+    const depth = 2;
+    
+    console.log(`Expanding graph for ${repositoryName} in group ${groupId} with depth ${depth}`);
+    const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth);
+    
+    // Log the graph to console for now
+    console.log('Expanded graph:', graph);
+    
+    // The graph can be used for visualization later
+    let nodeCount = 0;
+    let linkCount = 0;
+    graph.forEachNode(() => {nodeCount++});
+    graph.forEachLink(() => {linkCount++});
+    console.log(`Graph has ${nodeCount} nodes and ${linkCount} links`);
+  } catch (err) {
+    console.error('Failed to expand graph:', err);
+  } finally {
+    expandingGraph.value = false;
+  }
+}
+
 </script>
 <template>
   <div class="neighbors-container">
@@ -35,6 +68,9 @@ function getLink(repo) {
           </h2>
           <h3 v-if="!vm.loading">
             Direct connections ({{vm.repos.length}})
+            <button @click="expandGraph" :disabled="expandingGraph" class="expand-btn">
+              {{ expandingGraph ? 'Loading...' : 'Expand Graph' }}
+            </button>
           </h3>
           <h3 v-else>
             Loading...
@@ -92,5 +128,12 @@ ul {
 }
 .header {
   flex: 1;
+}
+
+.expand-btn {
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>

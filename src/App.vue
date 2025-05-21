@@ -11,6 +11,7 @@ import GroupViewModel from './lib/GroupViewModel';
 import FocusViewModel from './lib/FocusViewModel';
 
 import bus from './lib/bus'
+import { createSubgraphViewer } from './lib/createSubgraphViewer';
 
 const SM_SCREEN_BREAKPOINT = 600;
 
@@ -28,6 +29,7 @@ const isSmallScreen = ref(window.innerWidth < SM_SCREEN_BREAKPOINT);
 const supportMessageVisible = ref(false);
 let lastSelected;
 let supportMessageTimer;
+let subgraphViewer = null;
 
 function onTypeAheadInput() {
 }
@@ -91,6 +93,7 @@ onBeforeUnmount(() => {
   bus.off('show-largest-in-group', onShowLargestInGroup);
   bus.off('focus-on-repo', onFocusOnRepo);
   bus.off('unsaved-changes-detected', onUnsavedChangesDetected);
+  bus.off('subgraph-load-started', onSubgraphLoadStarted);
   window.removeEventListener('resize', onResize);
   if (supportMessageTimer) clearTimeout(supportMessageTimer);
 })
@@ -102,6 +105,7 @@ onBeforeMount(() => {
   bus.on('show-largest-in-group', onShowLargestInGroup);
   bus.on('focus-on-repo', onFocusOnRepo);
   bus.on('unsaved-changes-detected', onUnsavedChangesDetected);
+  bus.on('subgraph-load-started', onSubgraphLoadStarted);
   window.addEventListener('resize', onResize);
   
   // Show support message after a delay
@@ -109,6 +113,13 @@ onBeforeMount(() => {
     supportMessageVisible.value = true;
   }, 10000); // Show after 10 seconds
 });
+
+function onSubgraphLoadStarted(graphLoadArgs) {
+  if (subgraphViewer) {
+    subgraphViewer.dispose();
+  }
+  subgraphViewer = createSubgraphViewer(graphLoadArgs);
+}
 
 function onResize() {
   isSmallScreen.value = window.innerWidth < SM_SCREEN_BREAKPOINT;

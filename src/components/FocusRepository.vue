@@ -125,6 +125,10 @@ async function expandGraph() {
   }
 }
 
+// Return to direct connections view
+function goBackToDirectConnections() {
+  graphData.value = null;
+}
 </script>
 <template>
   <div class="neighbors-container">
@@ -134,15 +138,29 @@ async function expandGraph() {
           <h2>
             <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
           </h2>
-          <h3 v-if="!vm.loading">
-            Direct connections ({{vm.repos.length}})
-            <button @click="expandGraph" :disabled="expandingGraph" class="expand-btn">
-              {{ expandingGraph ? 'Loading...' : 'Expand Graph' }}
-            </button>
-          </h3>
-          <h3 v-else>
-            Loading...
-          </h3>
+          <!-- Graph view header -->
+          <div class="minimal-header" v-if="graphData">
+            <span>Graph view active.</span>
+            <a href="#" 
+              @click.prevent="goBackToDirectConnections()" 
+              class="inline-action-link"
+              :class="{ 'disabled': expandingGraph }">
+              Exit
+            </a>
+          </div>
+          
+          <!-- Direct connections view header -->
+          <div v-else class="minimal-header">
+            <span v-if="!vm.loading">
+              {{vm.repos.length}} direct connections shown.
+              <a href="#" 
+                v-if="!expandingGraph"
+                @click.prevent="expandGraph()" 
+                class="inline-action-link">
+                Expand to graph view
+              </a>
+            </span>
+          </div>
         </div>
         <a class='close-btn' href='#' @click.prevent='closePanel()'>
           <!-- Icon copyright (c) 2013-2017 Cole Bemis: https://github.com/feathericons/feather/blob/master/LICENSE -->
@@ -164,7 +182,6 @@ async function expandGraph() {
         </ul>
       </div>
       <div v-else class="tree-view-container">
-        <button @click="graphData = null" class="back-btn">Back to direct connections</button>
         <TreeView :tree="graphData" @node-selected="handleNodeSelected" />
       </div>
     </div>
@@ -180,6 +197,29 @@ async function expandGraph() {
 }
 h2 {
   margin-bottom: 4px
+}
+
+.minimal-header {
+  font-size: 14px;
+  color: var(--color-text-light, #888);
+  margin-bottom: 8px;
+}
+
+.inline-action-link {
+  color: var(--color-link-hover);
+  text-decoration: none;
+  margin-left: 5px;
+  font-weight: 500;
+}
+
+.inline-action-link:hover {
+  text-decoration: underline;
+}
+
+.inline-action-link.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 ul {
@@ -211,17 +251,53 @@ ul {
   flex: 1;
 }
 
-.expand-btn {
-  margin-left: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
+.connections-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-.back-btn {
-  padding: 4px 8px;
+.action-button {
+  margin-left: 8px;
+}
+
+.action-link {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  text-decoration: none;
   border-radius: 4px;
-  cursor: pointer;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.action-link:hover {
+  color: var(--color-link-hover);
+  border-color: var(--color-border-hover);
+}
+
+.action-link.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.back-link {
+  display: inline-block;
+  background: var(--color-background-mute);
   margin-top: 8px;
+}
+
+.title-row h3 {
+  margin-bottom: 0;
+  color: var(--color-text);
+}
+
+.graph-controls {
+  margin-top: 8px;
+  padding: 4px 0;
 }
 </style>

@@ -2,6 +2,7 @@ import {createScene} from 'w-gl';
 import LineCollection from './gl/LineCollection';
 import PointCollection from './gl/PointCollection';
 import MSDFTextCollection from './gl/MSDFTextCollection';
+import bus from './bus';
 
 export function createSubgraphViewer(subgraphInfo) {
   const container = document.querySelector('.subgraph-viewer');
@@ -19,6 +20,8 @@ export function createSubgraphViewer(subgraphInfo) {
   let layoutSteps = 400; 
   let nodes, lines, labels;
   let rafHandle;
+
+  canvas.addEventListener('click', handleCanvasClick);
 
   // Dynamically import the layout library
   import('ngraph.forcelayout').then(forceLayout => {
@@ -44,6 +47,7 @@ export function createSubgraphViewer(subgraphInfo) {
     
     isDisposed = true;
     cancelAnimationFrame(rafHandle);
+    canvas.removeEventListener('click', handleCanvasClick);
     // Clean up the canvas and any other resources
     scene.dispose();
     if (canvas.parentNode) {
@@ -82,6 +86,45 @@ export function createSubgraphViewer(subgraphInfo) {
     initUIElements();
 
     rafHandle = requestAnimationFrame(frame);
+  }
+
+  function handleCanvasClick(event) {
+    if (!layout || !graph || !canvas) return; // Ensure layout, graph, and canvas are available
+    const [sceneX, sceneY] = scene.getSceneCoordinate(event.clientX, event.clientY);
+
+    let minDistSq = Infinity;
+    let nearestNode = null;
+
+    graph.forEachNode(node => {
+      if (!layout.getBody(node.id)) return; // Node not in layout (e.g. filtered out)
+      const pos = layout.getNodePosition(node.id);
+      
+      // Using 2D distance for click interaction
+      const dx = pos.x - sceneX;
+      const dy = pos.y - sceneY;
+      const distSq = dx * dx + dy * dy;
+
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
+        nearestNode = node;
+      }
+    });
+
+    if (nearestNode) {
+      // Check if the click is within the node's radius
+      // node.ui.size is typically diameter. Radius is node.ui.size / 2.
+      const nodeRadius = (nearestNode.ui && typeof nearestNode.ui.size === 'number') ? nearestNode.ui.size / 2 : 2.5; // Default radius
+      
+      if (Math.sqrt(minDistSq) < nodeRadius) {
+        const finalPos = layout.getNodePosition(nearestNode.id);
+        bus.fire('repo-selected', {
+          text: nearestNode.id, // Or nearestNode.data.label if preferred
+          x: finalPos.x,
+          y: finalPos.y,
+          // z: finalPos.z || 0 // include if z-coordinate is relevant
+        });
+      }
+    }
   }
 
   function initUIElements() {

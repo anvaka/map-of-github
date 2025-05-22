@@ -54,6 +54,14 @@ function handleNodeSelected(node, event) {
               Exit
             </a>
           </div>
+          <div class="minimal-header" v-if="vm.graphData">
+            <span v-if="vm.layoutRunning" class="layout-status">
+              Layout is running.  <a href="#" @click.prevent="vm.setLayout(false)" class="inline-action-link">Stop</a>
+            </span>
+            <span v-else class="layout-status">
+              Layout is stopped.  <a href="#" @click.prevent="vm.setLayout(true)" class="inline-action-link">Resume</a>
+            </span>
+          </div>
           
           <!-- Direct connections view header -->
           <div v-else class="minimal-header">

@@ -30,6 +30,12 @@ export function createSubgraphViewer(subgraphInfo) {
   return {
     dispose() {
       disposeViewer();
+    },
+    stopLayout() {
+      layoutSteps = 0;
+    },
+    resumeLayout() {
+      layoutSteps = 400;
     }
   };
   
@@ -148,11 +154,15 @@ export function createSubgraphViewer(subgraphInfo) {
   function frame() {
     rafHandle = requestAnimationFrame(frame);
 
+    let willStop = layoutSteps - 1 === 0;
     if (layoutSteps > 0) {
       layoutSteps -= 1;
       layout.step();
       // Drawing labels is heavy, so avoid it if we don't need it
       redrawLabels();
+    } 
+    if (willStop) {
+      subgraphInfo.onLayoutStatusChange(false);
     }
     drawGraph();
     scene.renderFrame();

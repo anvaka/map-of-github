@@ -19,6 +19,7 @@ export default class FocusViewModel {
     this.loading = ref(true);
     this.expandingGraph = ref(false);
     this.graphData = ref(null);
+    this.layoutRunning = ref(false);
 
     downloadGroupGraph(groupId).then(graph => {
       this.loading.value = false;
@@ -70,6 +71,18 @@ export default class FocusViewModel {
     this.disposeSubgraphViewer();
   }
 
+  setLayout(isRunning) {
+    if (!activeSubgraphViewer) return;
+
+    if (isRunning) {
+      activeSubgraphViewer.resumeLayout();
+    } else {
+      activeSubgraphViewer.stopLayout();
+    }
+
+    this.layoutRunning = isRunning;
+  }
+
   // Fetch and display expanded graph with neighbors up to specified depth
   async expandGraph() {
     if (this.expandingGraph) return; // Prevent multiple clicks
@@ -94,8 +107,14 @@ export default class FocusViewModel {
       activeSubgraphViewer = createSubgraphViewer({
         graph,
         nodeId: repositoryName,
-        groupId
+        groupId,
+        onLayoutStatusChange: (isRunning) => {
+          this.layoutRunning = isRunning;
+        }
       });
+      
+      // Set initial layout status
+      this.layoutRunning = true;
 
     } catch (err) {
       console.error('Failed to expand graph:', err);

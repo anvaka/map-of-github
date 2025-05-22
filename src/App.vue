@@ -57,6 +57,7 @@ function findProject(x) {
   }
   window.mapOwner?.makeVisible(x.text, location, x.skipAnimation);
   currentProject.value = x.text;
+  bus.fire('current-project', x.text);
 }
 
 function onRepoSelected(repo) {

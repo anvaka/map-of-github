@@ -20,10 +20,11 @@ export function createSubgraphViewer(subgraphInfo) {
   let layoutSteps = 400; 
   let nodes, lines, labels;
   let rafHandle;
+  let lastSelectedNode;
 
   canvas.addEventListener('click', handleCanvasClick);
+  bus.on('current-project', handleCurrentProjectChange)
 
-  // Dynamically import the layout library
   import('ngraph.forcelayout').then(forceLayout => {
     if (!isDisposed) {
       runLayout(forceLayout);
@@ -48,12 +49,31 @@ export function createSubgraphViewer(subgraphInfo) {
     isDisposed = true;
     cancelAnimationFrame(rafHandle);
     canvas.removeEventListener('click', handleCanvasClick);
-    // Clean up the canvas and any other resources
     scene.dispose();
     if (canvas.parentNode) {
       canvas.parentNode.removeChild(canvas);
     }
     container.classList.remove('active');
+    bus.off('current-project', handleCurrentProjectChange)
+  }
+
+  function handleCurrentProjectChange(projectName) {
+    if (projectName === lastSelectedNode || !layout) {
+      return;
+    }
+    if (!layout.getBody(projectName)) {
+      return;
+    }
+
+    const pos = layout.getNodePosition(projectName);
+    const padding = 5;
+    scene.setViewBox({
+      left: pos.x - padding,
+      top: pos.y - padding,
+      right: pos.x + padding,
+      bottom: pos.y + padding,
+    });
+    lastSelectedNode = projectName;
   }
 
   function initScene() {
@@ -89,14 +109,14 @@ export function createSubgraphViewer(subgraphInfo) {
   }
 
   function handleCanvasClick(event) {
-    if (!layout || !graph || !canvas) return; // Ensure layout, graph, and canvas are available
+    if (!layout || !graph || !canvas) return;
     const [sceneX, sceneY] = scene.getSceneCoordinate(event.clientX, event.clientY);
 
     let minDistSq = Infinity;
     let nearestNode = null;
 
     graph.forEachNode(node => {
-      if (!layout.getBody(node.id)) return; // Node not in layout (e.g. filtered out)
+      if (!layout.getBody(node.id)) return; // Node not in layout yet
       const pos = layout.getNodePosition(node.id);
       
       // Using 2D distance for click interaction
@@ -117,6 +137,7 @@ export function createSubgraphViewer(subgraphInfo) {
       
       if (Math.sqrt(minDistSq) < nodeRadius) {
         const finalPos = layout.getNodePosition(nearestNode.id);
+        lastSelectedNode = nearestNode.id;
         bus.fire('repo-selected', {
           text: nearestNode.id, // Or nearestNode.data.label if preferred
           x: finalPos.x,
@@ -129,7 +150,7 @@ export function createSubgraphViewer(subgraphInfo) {
 
   function initUIElements() {
     nodes = new PointCollection(scene.getGL(), {
-      capacity: Math.min(graph.getNodesCount(), 1000),
+      capacity: Math.max(graph.getNodesCount(), 1000),
     });
 
     graph.forEachNode(node => {
@@ -139,7 +160,7 @@ export function createSubgraphViewer(subgraphInfo) {
       initializeNodeUI(node, point);
     });
 
-    lines = new LineCollection(scene.getGL(), { capacity: Math.min(graph.getLinksCount(), 1000) });
+    lines = new LineCollection(scene.getGL(), { capacity: Math.max(graph.getLinksCount(), 1000) });
 
     graph.forEachLink(link => {
       if (!layout.getBody(link.fromId) || !layout.getBody(link.toId)) return; // not yet in layout

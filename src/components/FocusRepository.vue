@@ -88,12 +88,15 @@ function handleNodeSelected(node, event) {
   
       <!-- Show either the regular repo list or the expanded graph tree view -->
       <div v-if="!vm.graphData" class="repo-list-container">
-        <ul v-if="vm.repos">
+        <ul v-if="vm.repos && !vm.expandingGraph">
           <li v-for="repo in vm.repos" :key="repo.name">
             <a :href="getLink(repo)" @click.prevent="showDetails(repo, $event)" target="_blank">{{repo.name}} <span v-if="repo.isExternal" title="External country">E</span>
             </a>
           </li>
         </ul>
+        <div v-if="vm.expandingGraph" class="loading">
+          Loading graph...
+        </div>
       </div>
       <div v-else class="tree-view-container">
         <TreeView :tree="vm.graphData" @node-selected="handleNodeSelected" />

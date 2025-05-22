@@ -2,7 +2,6 @@ import {createScene} from 'w-gl';
 import LineCollection from './gl/LineCollection';
 import PointCollection from './gl/PointCollection';
 import MSDFTextCollection from './gl/MSDFTextCollection';
-import bus from './bus';
 
 export function createSubgraphViewer(subgraphInfo) {
   const container = document.querySelector('.subgraph-viewer');
@@ -17,7 +16,7 @@ export function createSubgraphViewer(subgraphInfo) {
   let layout = null;
   let graph = subgraphInfo.graph;
   let isDisposed = false;
-  let layoutSteps = 4000; 
+  let layoutSteps = 400; 
   let nodes, lines, labels;
   let rafHandle;
 

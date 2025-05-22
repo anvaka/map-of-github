@@ -1,7 +1,10 @@
-import bus from './bus';
 import { ref } from 'vue';
 import { buildLocalNeighborsGraphForGroup } from './downloadGroupGraph';
 import downloadGroupGraph from './downloadGroupGraph';
+import { createSubgraphViewer } from './createSubgraphViewer';
+
+// Static reference to maintain single instance
+let activeSubgraphViewer = null;
 
 /**
  * This view model is used to show direct neighbors of a node. It can be extended
@@ -51,16 +54,27 @@ export default class FocusViewModel {
   // Return to direct connections view
   goBackToDirectConnections() {
     this.graphData = null;
-    bus.fire('dispose-subgraph-viewer');
+    this.disposeSubgraphViewer();
   }
 
+  // Dispose subgraph viewer if it exists
+  disposeSubgraphViewer() {
+    if (activeSubgraphViewer) {
+      activeSubgraphViewer.dispose();
+      activeSubgraphViewer = null;
+    }
+  }
+  
+  // Clean up resources when this view model is destroyed
+  dispose() {
+    this.disposeSubgraphViewer();
+  }
 
   // Fetch and display expanded graph with neighbors up to specified depth
   async expandGraph() {
-    const expandingGraph = this.expandGraph;
-    if (expandingGraph.value) return; // Prevent multiple clicks
+    if (this.expandingGraph) return; // Prevent multiple clicks
 
-    expandingGraph.value = true;
+    this.expandingGraph = true;
     try {
       const repositoryName = this.name;
       const groupId = this.groupId;
@@ -73,8 +87,11 @@ export default class FocusViewModel {
       // Convert graph to tree view
       this.graphData = toTreeView(graph, repositoryName, depth);
 
-      // Initialize the subgraph viewer
-      bus.fire('subgraph-load-started', {
+      // Dispose existing viewer if any
+      this.disposeSubgraphViewer();
+      
+      // Create the new subgraph viewer
+      activeSubgraphViewer = createSubgraphViewer({
         graph,
         nodeId: repositoryName,
         groupId
@@ -83,7 +100,7 @@ export default class FocusViewModel {
     } catch (err) {
       console.error('Failed to expand graph:', err);
     } finally {
-      expandingGraph.value = false;
+      this.expandingGraph = false;
     }
   }
 }

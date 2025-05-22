@@ -49,6 +49,13 @@ a:hover, a:focus,
   height: 100%;
 }
 
+.subgraph-viewer canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 .subgraph-viewer {
   pointer-events: none;
 }

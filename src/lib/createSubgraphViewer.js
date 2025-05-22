@@ -11,8 +11,6 @@ export function createSubgraphViewer(subgraphInfo) {
   container.classList.add('active');
 
   const canvas = document.createElement('canvas');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
   container.appendChild(canvas);
   const scene = initScene();
   let layout = null;
@@ -40,7 +38,6 @@ export function createSubgraphViewer(subgraphInfo) {
 
   function initScene() {
     let scene = createScene(canvas, {
-      devicePixelRatio: 1
     });
     scene.setClearColor(12/255, 41/255, 82/255, 1)
     let initialSceneSize = 40;
@@ -64,6 +61,8 @@ export function createSubgraphViewer(subgraphInfo) {
       dragCoefficient: 0.9,
     });
     layout.step();
+    const rootNode = graph.getNode(subgraphInfo.nodeId);
+    layout.pinNode(rootNode, true);
     initUIElements();
 
     rafHandle = requestAnimationFrame(frame);

@@ -86,7 +86,7 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
     // Process all neighbors of the current node
     currentGraph.forEachLinkedNode(nodeId, (neighborNode, link) => {
       // Add the edge to the local graph
-      if (!localGraph.hasLink(link.fromId, link.toId)) {
+      if (!localGraph.hasLink(link.fromId, link.toId) && !localGraph.hasLink(link.toId, link.fromId)) {
         localGraph.addLink(link.fromId, link.toId, { ...link.data });
       }
       

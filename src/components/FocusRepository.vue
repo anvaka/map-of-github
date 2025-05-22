@@ -1,6 +1,8 @@
 <script setup>
 import {defineProps, defineEmits, ref} from 'vue';
 import {buildLocalNeighborsGraphForGroup} from '../lib/downloadGroupGraph';
+import TreeView from './TreeView.vue';
+
 const props = defineProps({
   vm: {
     type: Object,
@@ -9,6 +11,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['selected', 'close']);
 const expandingGraph = ref(false);
+const graphData = ref(null);
 
 function showDetails(repo, event) {
   emit("selected", {
@@ -26,6 +29,77 @@ function getLink(repo) {
   return 'https://github.com/' + repo.name;
 }
 
+// Convert graph to tree view structure
+function toTreeView(graph, startNodeId, depth = 2) {
+  const rootGraphNode = graph.getNode(startNodeId);
+  if (!rootGraphNode) {
+    // Return a minimal tree structure if the start node isn't found
+    return { node: { id: startNodeId, name: startNodeId + ' (not found)', isExternal: false, lngLat: null }, children: [] };
+  }
+
+  const rootNodeData = {
+    id: rootGraphNode.id,
+    name: rootGraphNode.data?.name || rootGraphNode.id,
+    isExternal: rootGraphNode.data?.isExternal || false,
+    lngLat: rootGraphNode.data?.lngLat
+  };
+
+  // Helper function to recursively build the tree for children
+  // parentNodeId: The ID of the node whose children are being fetched.
+  // parentDepthInTree: The depth of parentNodeId in the tree (startNodeId is at 0).
+  // path: Set of ancestor IDs in the current traversal path to avoid cycles.
+  function getChildrenRecursive(parentNodeId, parentDepthInTree, path) {
+    // If the parent node is already at the maximum allowed depth,
+    // it cannot have any children displayed in the tree.
+    if (parentDepthInTree >= depth) {
+      return [];
+    }
+
+    const childNodes = [];
+    graph.forEachLinkedNode(parentNodeId, (linkedGraphNode) => {
+      // If the linked node is already in the current path, skip it to prevent cycles.
+      if (path.has(linkedGraphNode.id)) {
+        return;
+      }
+
+      const childData = {
+        id: linkedGraphNode.id,
+        name: linkedGraphNode.data?.name || linkedGraphNode.id,
+        isExternal: linkedGraphNode.data?.isExternal || false,
+        lngLat: linkedGraphNode.data?.lngLat
+      };
+      
+      // Create a new path set for the recursive call, including the current child.
+      const newPath = new Set(path);
+      newPath.add(linkedGraphNode.id);
+
+      // Recursively get children of the current linkedGraphNode.
+      // Its depth in the tree will be parentDepthInTree + 1.
+      const grandChildren = getChildrenRecursive(linkedGraphNode.id, parentDepthInTree + 1, newPath);
+      
+      childNodes.push({ node: childData, children: grandChildren });
+    });
+    return childNodes;
+  }
+
+  // Initial path for recursion, containing only the startNodeId.
+  const initialPath = new Set();
+  initialPath.add(startNodeId); 
+  
+  // Fetch children for the root node (startNodeId, which is at depth 0).
+  const rootChildren = getChildrenRecursive(startNodeId, 0, initialPath);
+  
+  return { node: rootNodeData, children: rootChildren };
+}
+
+// Handle node selection in the tree view
+function handleNodeSelected(node, event) {
+  showDetails({
+    name: node.name || node.id,
+    lngLat: node.lngLat || props.vm.lngLat
+  }, event);
+}
+
 // Fetch and display expanded graph with neighbors up to specified depth
 async function expandGraph() {
   if (expandingGraph.value) return; // Prevent multiple clicks
@@ -40,16 +114,10 @@ async function expandGraph() {
     
     console.log(`Expanding graph for ${repositoryName} in group ${groupId} with depth ${depth}`);
     const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth);
+
+    // Convert graph to tree view
+    graphData.value = toTreeView(graph, repositoryName, depth);
     
-    // Log the graph to console for now
-    console.log('Expanded graph:', graph);
-    
-    // The graph can be used for visualization later
-    let nodeCount = 0;
-    let linkCount = 0;
-    graph.forEachNode(() => {nodeCount++});
-    graph.forEachLink(() => {linkCount++});
-    console.log(`Graph has ${nodeCount} nodes and ${linkCount} links`);
   } catch (err) {
     console.error('Failed to expand graph:', err);
   } finally {
@@ -86,12 +154,19 @@ async function expandGraph() {
         </a>
       </div>
   
-      <ul v-if="vm.repos">
-        <li v-for="repo in vm.repos" :key="repo.name">
-          <a :href="getLink(repo)" @click.prevent="showDetails(repo, $event)" target="_blank">{{repo.name}} <span v-if="repo.isExternal" title="External country">E</span>
-          </a>
-        </li>
-      </ul>
+      <!-- Show either the regular repo list or the expanded graph tree view -->
+      <div v-if="!graphData" class="repo-list-container">
+        <ul v-if="vm.repos">
+          <li v-for="repo in vm.repos" :key="repo.name">
+            <a :href="getLink(repo)" @click.prevent="showDetails(repo, $event)" target="_blank">{{repo.name}} <span v-if="repo.isExternal" title="External country">E</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div v-else class="tree-view-container">
+        <button @click="graphData = null" class="back-btn">Back to direct connections</button>
+        <TreeView :tree="graphData" @node-selected="handleNodeSelected" />
+      </div>
     </div>
   </div>
 </template>
@@ -112,6 +187,12 @@ ul {
   padding: 0;
   overflow-y: auto;
 }
+
+.repo-list-container, .tree-view-container {
+  overflow-y: auto;
+  height: calc(100% - 60px);
+}
+
 .chat-container {
   height: 100%;
   overflow: hidden;
@@ -135,5 +216,12 @@ ul {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.back-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 8px;
 }
 </style>

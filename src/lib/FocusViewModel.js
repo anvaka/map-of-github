@@ -1,4 +1,6 @@
+import bus from './bus';
 import { ref } from 'vue';
+import { buildLocalNeighborsGraphForGroup } from './downloadGroupGraph';
 import downloadGroupGraph from './downloadGroupGraph';
 
 /**
@@ -12,6 +14,9 @@ export default class FocusViewModel {
     this.repos = ref([]);
     this.lngLat = ref(null);
     this.loading = ref(true);
+    this.expandingGraph = ref(false);
+    this.graphData = ref(null);
+
     downloadGroupGraph(groupId).then(graph => {
       this.loading.value = false;
       let neighbors = [];
@@ -28,7 +33,7 @@ export default class FocusViewModel {
           isExternal: !!(link.data?.e)
         });
       });
-      
+
       neighbors.sort((a, b) => {
         if (a.isExternal && !b.isExternal) {
           return 1;
@@ -42,4 +47,107 @@ export default class FocusViewModel {
       this.repos.value = neighbors;
     });
   }
+
+  // Return to direct connections view
+  goBackToDirectConnections() {
+    this.graphData = null;
+    bus.fire('dispose-subgraph-viewer');
+  }
+
+
+  // Fetch and display expanded graph with neighbors up to specified depth
+  async expandGraph() {
+    const expandingGraph = this.expandGraph;
+    if (expandingGraph.value) return; // Prevent multiple clicks
+
+    expandingGraph.value = true;
+    try {
+      const repositoryName = this.name;
+      const groupId = this.groupId;
+
+      // Depth of 2 gives immediate neighbors and their neighbors
+      const depth = 2;
+
+      const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth);
+
+      // Convert graph to tree view
+      this.graphData = toTreeView(graph, repositoryName, depth);
+
+      // Initialize the subgraph viewer
+      bus.fire('subgraph-load-started', {
+        graph,
+        nodeId: repositoryName,
+        groupId
+      });
+
+    } catch (err) {
+      console.error('Failed to expand graph:', err);
+    } finally {
+      expandingGraph.value = false;
+    }
+  }
+}
+
+
+// Convert graph to tree view structure
+function toTreeView(graph, startNodeId, depth = 2) {
+  const rootGraphNode = graph.getNode(startNodeId);
+  if (!rootGraphNode) {
+    // Return a minimal tree structure if the start node isn't found
+    return { node: { id: startNodeId, name: startNodeId + ' (not found)', isExternal: false, lngLat: null }, children: [] };
+  }
+
+  const rootNodeData = {
+    id: rootGraphNode.id,
+    name: rootGraphNode.data?.name || rootGraphNode.id,
+    isExternal: rootGraphNode.data?.isExternal || false,
+    lngLat: rootGraphNode.data?.lngLat
+  };
+
+  // Helper function to recursively build the tree for children
+  // parentNodeId: The ID of the node whose children are being fetched.
+  // parentDepthInTree: The depth of parentNodeId in the tree (startNodeId is at 0).
+  // path: Set of ancestor IDs in the current traversal path to avoid cycles.
+  function getChildrenRecursive(parentNodeId, parentDepthInTree, path) {
+    // If the parent node is already at the maximum allowed depth,
+    // it cannot have any children displayed in the tree.
+    if (parentDepthInTree >= depth) {
+      return [];
+    }
+
+    const childNodes = [];
+    graph.forEachLinkedNode(parentNodeId, (linkedGraphNode) => {
+      // If the linked node is already in the current path, skip it to prevent cycles.
+      if (path.has(linkedGraphNode.id)) {
+        return;
+      }
+
+      const childData = {
+        id: linkedGraphNode.id,
+        name: linkedGraphNode.data?.name || linkedGraphNode.id,
+        isExternal: linkedGraphNode.data?.isExternal || false,
+        lngLat: linkedGraphNode.data?.lngLat
+      };
+
+      // Create a new path set for the recursive call, including the current child.
+      const newPath = new Set(path);
+      newPath.add(linkedGraphNode.id);
+
+      // Recursively get children of the current linkedGraphNode.
+      // Its depth in the tree will be parentDepthInTree + 1.
+      const grandChildren = getChildrenRecursive(linkedGraphNode.id, parentDepthInTree + 1, newPath);
+
+      childNodes.push({ node: childData, children: grandChildren });
+    });
+    return childNodes;
+  }
+
+  // Initial path for recursion, containing only the startNodeId.
+  const initialPath = new Set();
+  initialPath.add(startNodeId);
+
+  // Fetch children for the root node (startNodeId, which is at depth 0).
+  const rootChildren = getChildrenRecursive(startNodeId, 0, initialPath);
+
+  return { node: rootNodeData, children: rootChildren };
 }

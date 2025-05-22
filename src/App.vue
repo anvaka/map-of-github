@@ -94,6 +94,7 @@ onBeforeUnmount(() => {
   bus.off('focus-on-repo', onFocusOnRepo);
   bus.off('unsaved-changes-detected', onUnsavedChangesDetected);
   bus.off('subgraph-load-started', onSubgraphLoadStarted);
+  bus.off('dispose-subgraph-viewer', disposeSubgraphViewer);
   window.removeEventListener('resize', onResize);
   if (supportMessageTimer) clearTimeout(supportMessageTimer);
 })
@@ -106,6 +107,7 @@ onBeforeMount(() => {
   bus.on('focus-on-repo', onFocusOnRepo);
   bus.on('unsaved-changes-detected', onUnsavedChangesDetected);
   bus.on('subgraph-load-started', onSubgraphLoadStarted);
+  bus.on('dispose-subgraph-viewer', disposeSubgraphViewer);
   window.addEventListener('resize', onResize);
   
   // Show support message after a delay
@@ -156,8 +158,16 @@ function closeLargestRepositories() {
   window.mapOwner?.clearBorderHighlights();
 }
 
+function disposeSubgraphViewer() {
+  if (subgraphViewer) {
+    subgraphViewer.dispose();
+    subgraphViewer = null;
+  }
+}
+
 function closeFocusView() {
   currentFocus.value = null;
+  disposeSubgraphViewer();
 }
 
 const typeAheadVisible = computed(() => {
@@ -169,6 +179,8 @@ function showUnsavedChanges() {
 }
 
 async function listCurrentConnections() {
+  disposeSubgraphViewer();
+  
   let groupId = await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon);
   if (groupId !== undefined) {
     const focusViewModel = new FocusViewModel(lastSelected.text, groupId);

@@ -1,6 +1,5 @@
 <script setup>
-import {defineProps, defineEmits, ref} from 'vue';
-import {buildLocalNeighborsGraphForGroup} from '../lib/downloadGroupGraph';
+import {defineProps, defineEmits} from 'vue';
 import TreeView from './TreeView.vue';
 
 const props = defineProps({
@@ -10,8 +9,6 @@ const props = defineProps({
   }
 });
 const emit = defineEmits(['selected', 'close']);
-const expandingGraph = ref(false);
-const graphData = ref(null);
 
 function showDetails(repo, event) {
   emit("selected", {
@@ -29,69 +26,6 @@ function getLink(repo) {
   return 'https://github.com/' + repo.name;
 }
 
-// Convert graph to tree view structure
-function toTreeView(graph, startNodeId, depth = 2) {
-  const rootGraphNode = graph.getNode(startNodeId);
-  if (!rootGraphNode) {
-    // Return a minimal tree structure if the start node isn't found
-    return { node: { id: startNodeId, name: startNodeId + ' (not found)', isExternal: false, lngLat: null }, children: [] };
-  }
-
-  const rootNodeData = {
-    id: rootGraphNode.id,
-    name: rootGraphNode.data?.name || rootGraphNode.id,
-    isExternal: rootGraphNode.data?.isExternal || false,
-    lngLat: rootGraphNode.data?.lngLat
-  };
-
-  // Helper function to recursively build the tree for children
-  // parentNodeId: The ID of the node whose children are being fetched.
-  // parentDepthInTree: The depth of parentNodeId in the tree (startNodeId is at 0).
-  // path: Set of ancestor IDs in the current traversal path to avoid cycles.
-  function getChildrenRecursive(parentNodeId, parentDepthInTree, path) {
-    // If the parent node is already at the maximum allowed depth,
-    // it cannot have any children displayed in the tree.
-    if (parentDepthInTree >= depth) {
-      return [];
-    }
-
-    const childNodes = [];
-    graph.forEachLinkedNode(parentNodeId, (linkedGraphNode) => {
-      // If the linked node is already in the current path, skip it to prevent cycles.
-      if (path.has(linkedGraphNode.id)) {
-        return;
-      }
-
-      const childData = {
-        id: linkedGraphNode.id,
-        name: linkedGraphNode.data?.name || linkedGraphNode.id,
-        isExternal: linkedGraphNode.data?.isExternal || false,
-        lngLat: linkedGraphNode.data?.lngLat
-      };
-      
-      // Create a new path set for the recursive call, including the current child.
-      const newPath = new Set(path);
-      newPath.add(linkedGraphNode.id);
-
-      // Recursively get children of the current linkedGraphNode.
-      // Its depth in the tree will be parentDepthInTree + 1.
-      const grandChildren = getChildrenRecursive(linkedGraphNode.id, parentDepthInTree + 1, newPath);
-      
-      childNodes.push({ node: childData, children: grandChildren });
-    });
-    return childNodes;
-  }
-
-  // Initial path for recursion, containing only the startNodeId.
-  const initialPath = new Set();
-  initialPath.add(startNodeId); 
-  
-  // Fetch children for the root node (startNodeId, which is at depth 0).
-  const rootChildren = getChildrenRecursive(startNodeId, 0, initialPath);
-  
-  return { node: rootNodeData, children: rootChildren };
-}
-
 // Handle node selection in the tree view
 function handleNodeSelected(node, event) {
   showDetails({
@@ -100,35 +34,7 @@ function handleNodeSelected(node, event) {
   }, event);
 }
 
-// Fetch and display expanded graph with neighbors up to specified depth
-async function expandGraph() {
-  if (expandingGraph.value) return; // Prevent multiple clicks
-  
-  expandingGraph.value = true;
-  try {
-    const repositoryName = props.vm.name;
-    const groupId = props.vm.groupId;
-    
-    // Depth of 2 gives immediate neighbors and their neighbors
-    const depth = 2;
-    
-    console.log(`Expanding graph for ${repositoryName} in group ${groupId} with depth ${depth}`);
-    const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth);
 
-    // Convert graph to tree view
-    graphData.value = toTreeView(graph, repositoryName, depth);
-    
-  } catch (err) {
-    console.error('Failed to expand graph:', err);
-  } finally {
-    expandingGraph.value = false;
-  }
-}
-
-// Return to direct connections view
-function goBackToDirectConnections() {
-  graphData.value = null;
-}
 </script>
 <template>
   <div class="neighbors-container">
@@ -139,12 +45,12 @@ function goBackToDirectConnections() {
             <a :href="getLink(vm.name)" @click.prevent="showDetails(vm, $event)" class="normal">{{ vm.name }}</a> 
           </h2>
           <!-- Graph view header -->
-          <div class="minimal-header" v-if="graphData">
+          <div class="minimal-header" v-if="vm.graphData">
             <span>Graph view active.</span>
             <a href="#" 
-              @click.prevent="goBackToDirectConnections()" 
+              @click.prevent="vm.goBackToDirectConnections()" 
               class="inline-action-link"
-              :class="{ 'disabled': expandingGraph }">
+              :class="{ 'disabled': vm.expandingGraph }">
               Exit
             </a>
           </div>
@@ -154,8 +60,8 @@ function goBackToDirectConnections() {
             <span v-if="!vm.loading">
               {{vm.repos.length}} direct connections shown.
               <a href="#" 
-                v-if="!expandingGraph"
-                @click.prevent="expandGraph()" 
+                v-if="!vm.expandingGraph"
+                @click.prevent="vm.expandGraph()" 
                 class="inline-action-link">
                 Expand to graph view
               </a>
@@ -173,7 +79,7 @@ function goBackToDirectConnections() {
       </div>
   
       <!-- Show either the regular repo list or the expanded graph tree view -->
-      <div v-if="!graphData" class="repo-list-container">
+      <div v-if="!vm.graphData" class="repo-list-container">
         <ul v-if="vm.repos">
           <li v-for="repo in vm.repos" :key="repo.name">
             <a :href="getLink(repo)" @click.prevent="showDetails(repo, $event)" target="_blank">{{repo.name}} <span v-if="repo.isExternal" title="External country">E</span>
@@ -182,7 +88,7 @@ function goBackToDirectConnections() {
         </ul>
       </div>
       <div v-else class="tree-view-container">
-        <TreeView :tree="graphData" @node-selected="handleNodeSelected" />
+        <TreeView :tree="vm.graphData" @node-selected="handleNodeSelected" />
       </div>
     </div>
   </div>
@@ -196,7 +102,7 @@ function goBackToDirectConnections() {
   overflow: hidden;
 }
 h2 {
-  margin-bottom: 4px
+  margin-bottom: 4px;
 }
 
 .minimal-header {

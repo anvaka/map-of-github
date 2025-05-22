@@ -2,6 +2,7 @@ import {createScene} from 'w-gl';
 import LineCollection from './gl/LineCollection';
 import PointCollection from './gl/PointCollection';
 import MSDFTextCollection from './gl/MSDFTextCollection';
+import bus from './bus';
 
 export function createSubgraphViewer(subgraphInfo) {
   const container = document.querySelector('.subgraph-viewer');
@@ -19,22 +20,32 @@ export function createSubgraphViewer(subgraphInfo) {
   let layoutSteps = 4000; 
   let nodes, lines, labels;
   let rafHandle;
-  // TODO: do not run if we already disposed.
-  import('ngraph.forcelayout').then(runLayout);
+
+  // Dynamically import the layout library
+  import('ngraph.forcelayout').then(forceLayout => {
+    if (!isDisposed) {
+      runLayout(forceLayout);
+    }
+  });
 
   return {
     dispose() {
-      if (isDisposed) throw new Error('Already disposed');
-      isDisposed = true;
-      cancelAnimationFrame(rafHandle);
-      // Clean up the canvas and any other resources
-      scene.dispose();
-      if (canvas.parentNode) {
-        canvas.parentNode.removeChild(canvas);
-      }
-      container.classList.remove('active');
+      disposeViewer();
     }
   };
+  
+  function disposeViewer() {
+    if (isDisposed) return;
+    
+    isDisposed = true;
+    cancelAnimationFrame(rafHandle);
+    // Clean up the canvas and any other resources
+    scene.dispose();
+    if (canvas.parentNode) {
+      canvas.parentNode.removeChild(canvas);
+    }
+    container.classList.remove('active');
+  }
 
   function initScene() {
     let scene = createScene(canvas, {

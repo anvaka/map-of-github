@@ -21,6 +21,8 @@ export function createSubgraphViewer(subgraphInfo) {
   let nodes, lines, labels;
   let rafHandle;
   let lastSelectedNode;
+  let selectedNodeColor = 0xbf2072ff; // Selected node color
+  let defaultNodeColor = 0x90f8fcff; // Default node color
 
   canvas.addEventListener('click', handleCanvasClick);
   bus.on('current-project', handleCurrentProjectChange)
@@ -81,6 +83,7 @@ export function createSubgraphViewer(subgraphInfo) {
         bottom: pos.y + padding,
       });
     }
+    selectNode(projectName);
     lastSelectedNode = projectName;
   }
 
@@ -144,8 +147,8 @@ export function createSubgraphViewer(subgraphInfo) {
       const nodeRadius = (nearestNode.ui && typeof nearestNode.ui.size === 'number') ? nearestNode.ui.size / 2 : 2.5; // Default radius
       
       if (Math.sqrt(minDistSq) < nodeRadius) {
+        selectNode(nearestNode.id);
         const finalPos = layout.getNodePosition(nearestNode.id);
-        lastSelectedNode = nearestNode.id;
         bus.fire('repo-selected', {
           text: nearestNode.id, // Or nearestNode.data.label if preferred
           x: finalPos.x,
@@ -153,6 +156,48 @@ export function createSubgraphViewer(subgraphInfo) {
           // z: finalPos.z || 0 // include if z-coordinate is relevant
         });
       }
+    }
+  }
+
+  function selectNode(nodeId) {
+    // If we have a previously selected node and it's different from the current one
+    if (lastSelectedNode && lastSelectedNode !== nodeId) {
+      // Reset the previous selection
+      updateNodeAppearance(lastSelectedNode, defaultNodeColor);
+      
+      // Reset neighbors of previous selection
+      graph.forEachLinkedNode(lastSelectedNode, (neighborNode, link) => {
+        updateNodeAppearance(neighborNode.id, defaultNodeColor);
+        updateLinkAppearance(link, 0xFFFFFF10); // Reset to default edge color
+      });
+    }
+
+    // Set new selection
+    updateNodeAppearance(nodeId, selectedNodeColor);
+    
+    // Highlight immediate neighbors and connecting edges
+    graph.forEachLinkedNode(nodeId, (neighborNode, link) => {
+      updateNodeAppearance(neighborNode.id, 0xe56aaaff); // Highlight color for neighbors
+      updateLinkAppearance(link, 0xFFFFFFFF); // Bright white for highlighted edges
+    });
+    
+    lastSelectedNode = nodeId;
+  }
+
+  // Helper function to update node appearance
+  function updateNodeAppearance(nodeId, color) {
+    const node = graph.getNode(nodeId);
+    if (node && node.ui) {
+      node.ui.color = color;
+      nodes.update(node.uiId, node.ui);
+    }
+  }
+
+  // Helper function to update link appearance
+  function updateLinkAppearance(link, color) {
+    if (link && link.ui) {
+      link.ui.color = color;
+      lines.update(link.uiId, link.ui);
     }
   }
 

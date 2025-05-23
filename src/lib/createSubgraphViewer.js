@@ -66,13 +66,21 @@ export function createSubgraphViewer(subgraphInfo) {
     }
 
     const pos = layout.getNodePosition(projectName);
-    const padding = 5;
-    scene.setViewBox({
-      left: pos.x - padding,
-      top: pos.y - padding,
-      right: pos.x + padding,
-      bottom: pos.y + padding,
-    });
+    if (typeof scene.flyTo === 'function') {
+      scene.flyTo({
+        x: pos.x,
+        y: pos.y
+      })
+    } else {
+      // old w-gl:
+      const padding = 5;
+      scene.setViewBox({
+        left: pos.x - padding,
+        top: pos.y - padding,
+        right: pos.x + padding,
+        bottom: pos.y + padding,
+      });
+    }
     lastSelectedNode = projectName;
   }
 

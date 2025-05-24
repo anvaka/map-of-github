@@ -8,15 +8,16 @@ export default function createLabelEditor(scene) {
       updateVisibleLabels();
     }
   });
-  scene.appendChild(labels);
 
   let visibleRect;
   const allLabelsInfo = new Map();
   let visibleLabels = new Set();
   let scheduledVisibleLabelsUpdate = false;
+  let cameraZ = scene.getDrawContext().view.position[2];
   const padding = 1; // Padding around labels for overlap checking
 
   return {
+    labels,
     addNodeLabel(node) {
       if (allLabelsInfo.has(node.id)) return;
       allLabelsInfo.set(node.id, node);
@@ -30,6 +31,7 @@ export default function createLabelEditor(scene) {
         top: rect.top,
         bottom: rect.bottom
       };
+      cameraZ = scene.getDrawContext().view.position[2]
       updateVisibleLabels();
     },
     updateVisibleLabels,
@@ -39,7 +41,7 @@ export default function createLabelEditor(scene) {
   function redrawLabels() {
     labels.clear();
     visibleLabels.forEach(labelInfo => {
-      labels.addText(getTextFromNode(labelInfo));
+      labels.addText(getTextFromNode(labelInfo, cameraZ));
     });
   }
 
@@ -61,12 +63,18 @@ export default function createLabelEditor(scene) {
     const potentiallyVisible = [];
     allLabelsInfo.forEach(labelInfo => {
       if (isLabelVisible(labelInfo)) {
-        const textLayout = labels.measureText(getTextFromNode(labelInfo));
+        const textLayout = labels.measureText(getTextFromNode(labelInfo, cameraZ));
+        if (!textLayout || textLayout.error) {
+          // If text layout measurement failed, skip this label
+          return;
+        }
+        if (textLayout.width > 10 && labelInfo.selectedLevel < 0) {
+          // Too long to display, skip
+          return;
+        }
         if (textLayout && !textLayout.error) {
-          potentiallyVisible.push({
-            ...labelInfo,
-            textLayout // Store layout info
-          });
+          labelInfo.textLayout = textLayout; // Store layout info
+          potentiallyVisible.push(labelInfo);
         }
       }
     });
@@ -154,7 +162,7 @@ export default function createLabelEditor(scene) {
   }
 }
 
-function getTextFromNode(node) {
+function getTextFromNode(node, cameraZ) {
   if (!node.textUI) {
     node.textUI = {
       text: '',
@@ -167,10 +175,34 @@ function getTextFromNode(node) {
 
   let text = '' + ((node.data && node.data.label) || node.id);
   let fontSize = 16;
-  if (!node.isSelected && text.indexOf('/') > -1) {
+  
+  if (node.selectedLevel !== 0 && text.indexOf('/') > -1) {
     text = text.split('/').pop();
-    fontSize = 14
   }
+
+  // For non-selected labels, apply fontSize scaling based on camera z position and node size
+  if (node.selectedLevel < 0) {
+    const nodeSize = node.ui && node.ui.size !== undefined ? node.ui.size : 1;
+    
+    // Interpolate fontSize based on camera z position (zoom level)
+    // z=500+ (far): smaller font, z=6- (near): larger font
+    const clampedZ = Math.max(6, Math.min(500, cameraZ));
+    
+    // Linear interpolation similar to Mapbox
+    // At z=500 (zoom 8 equivalent): fontSize = nodeSize / 4
+    // At z=6 (zoom 10 equivalent): fontSize = nodeSize + 8
+    const t = (clampedZ - 6) / (500 - 6); // Normalize to 0-1
+    const minFontSize = nodeSize + 8; // At nearest (z=6)
+    const maxFontSize = nodeSize / 2;  // At farthest (z=500)
+    
+    fontSize = minFontSize + t * (maxFontSize - minFontSize);
+    
+    // Ensure minimum readable size
+    fontSize = Math.round(Math.max(8, fontSize));
+  } else {
+    fontSize = node.selectedLevel === 0 ? 18 : 14; // Default size for selected nodes
+  }
+  
   node.textUI.text = text;
   node.textUI.fontSize = fontSize;
   node.textUI.x = node.ui.position[0];

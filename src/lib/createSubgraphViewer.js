@@ -127,6 +127,7 @@ export function createSubgraphViewer(subgraphInfo) {
     initUIElements();
 
     rafHandle = requestAnimationFrame(frame);
+    selectNode(subgraphInfo.nodeId);
   }
 
   function handleCanvasClick(event) {
@@ -242,7 +243,8 @@ export function createSubgraphViewer(subgraphInfo) {
     });
     
     lastSelectedNode = nodeId;
-    labelManager.needsRedraw = true; // Ensure labels are redrawn
+    labelManager.needsRedraw = true; 
+    labelManager.updateVisibleLabels(); 
   }
 
   // Helper function to update node appearance
@@ -290,6 +292,7 @@ export function createSubgraphViewer(subgraphInfo) {
 
     scene.appendChild(lines);
     scene.appendChild(nodes);
+    scene.appendChild(labelManager.labels);
   }
 
   function initializeNodeUI(node, point) {
@@ -304,6 +307,7 @@ export function createSubgraphViewer(subgraphInfo) {
     }
     node.ui = {size, position: [point.x, point.y, point.z || 0], color: node.data.color || 0x90f8fcff};
     node.uiId = nodes.add(node.ui);
+    node.selectedLevel = -1; 
     labelManager.addNodeLabel(node);
   }
 

@@ -69,7 +69,7 @@ function getTextFromNode(node) {
     text: '' + ((node.data && node.data.label) || node.id),
     x: node.ui.position[0],
     y: node.ui.position[1] - node.ui.size / 2,
-    limit: node.ui.size,
+    // limit: node.ui.size,
     cx: 0.5
   };
 }

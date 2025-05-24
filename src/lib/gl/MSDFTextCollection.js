@@ -1,4 +1,5 @@
 import {defineProgram, InstancedAttribute, GLCollection} from 'w-gl';
+import {mat4, vec4} from 'gl-matrix';
 
 export default class MSDFTextCollection extends GLCollection {
   constructor(gl, options = {}) {
@@ -10,7 +11,7 @@ export default class MSDFTextCollection extends GLCollection {
     img.crossOrigin = 'Anonymous';
     this.isReady = false;
     this.queue = [];
-    this.fontSize = options.fontSize || 2;
+    this.fontSize = options.fontSize || 14;
     this.fontInfo = null;
 
     let fontPath = 'fonts';
@@ -75,31 +76,94 @@ export default class MSDFTextCollection extends GLCollection {
     if (text === undefined) {
       throw new Error('Text is not defined in ' + textInfo)
     }
+
+    let desiredScreenHeight = textInfo.fontSize || this.fontSize;
+    let currentWorldFontSize = desiredScreenHeight; // Default to desiredScreenHeight
+
+    let totalXAdvance = 0;
+    if (this.fontInfo && this.fontInfo.chars) {
+      for (let char of text) {
+        let sdfPos = this.alphabet.get(char);
+        if (!sdfPos) continue;
+        totalXAdvance += sdfPos.xadvance;
+      }
+    }
+    // Avoid division by zero later. If text is empty or all chars are missing/zero-width.
+    if (totalXAdvance === 0 && this.fontInfo && this.fontInfo.info && this.fontInfo.info.size > 0) {
+        totalXAdvance = this.fontInfo.info.size; // Use a nominal value like font size
+    } else if (totalXAdvance === 0) {
+        totalXAdvance = 1; // Absolute fallback
+    }
+
+    const dc = this.scene.getDrawContext();
+    const pMat = dc.projection;
+    const vMat = dc.view.matrix;
+    // Assuming this.worldModel is the model matrix for this specific text collection
+    const mMat = this.worldModel; 
+
+    const mvMat = mat4.create();
+    mat4.multiply(mvMat, vMat, mMat);
+    
+    const mvpMat = mat4.create();
+    mat4.multiply(mvpMat, pMat, mvMat);
+
+    // Use the provided x, y, z as the local anchor point for the text
+    let textAnchorLocal = vec4.fromValues(x, y, z, 1.0);
+    let textAnchorClip = vec4.create();
+    vec4.transformMat4(textAnchorClip, textAnchorLocal, mvpMat);
+    
+    let wClip = textAnchorClip[3];
+
+    if (Math.abs(wClip) < 1e-6) { // Avoid division by zero or very small w
+      wClip = (wClip < 0 ? -1e-6 : 1e-6);
+    }
+
+    // Projection matrix P's element P[1][1] (or pMat[5] in gl-matrix's flat array) 
+    // relates to how Y in view space maps to Y in clip space.
+    // Clip space Y ranges from -1 to 1. Viewport height maps this to pixel height.
+    // So, screenPixelHeight = (clipY * 0.5 + 0.5) * viewportHeight
+    // And clipY = worldY * P[1][1] / wClip (simplified, ignoring other terms for height scaling)
+    // We want worldHeightAtUnitClipDistance = desiredScreenHeight / (0.5 * P[1][1] * viewportHeight)
+    // Then, currentWorldFontSize = worldHeightAtUnitClipDistance * wClip
+    let projYScale = pMat[5]; 
+    if (Math.abs(projYScale) < 1e-6) projYScale = 1e-6; // Avoid division by zero
+
+    let viewportHeight = dc.height; // dc.height is already in pixels
+
+    // This is the size in world units that would make the text `desiredScreenHeight` pixels tall
+    // if the text was at a distance from the camera where its wClip coordinate is 1.
+    // We then scale this by the actual wClip of the text's anchor.
+    currentWorldFontSize = (desiredScreenHeight * wClip) / (projYScale * 0.5 * viewportHeight);
+
+    let scale = 0;
+    if (this.fontInfo && this.fontInfo.info && this.fontInfo.info.size > 0) {
+      scale = currentWorldFontSize / this.fontInfo.info.size;
+    }
+
     let dx = 0;
-    let fontSize = textInfo.fontSize || this.fontSize;
-    if (textInfo.limit !== undefined) {
-      let w = 0;
-      for (let char of text) {
-        let sdfPos = this.alphabet.get(char);
-        if (!sdfPos) continue;
-        w += sdfPos.xadvance;
-      }
-      fontSize = (textInfo.limit * this.fontInfo.info.size) / w;
-    }
-
-    let scale = fontSize / this.fontInfo.info.size;
     if (textInfo.cx !== undefined) {
-      let w = 0;
-      for (let char of text) {
-        let sdfPos = this.alphabet.get(char);
-        if (!sdfPos) continue;
-
-        w += sdfPos.xadvance;
-      }
-      dx -= w * textInfo.cx * scale;
+      dx -= totalXAdvance * textInfo.cx * scale;
     }
+
+    const rectAnchorX = textInfo.x === undefined ? 0 : textInfo.x;
+    const rectAnchorY = textInfo.y === undefined ? 0 : textInfo.y;
+    const rectAnchorZ = textInfo.z === undefined ? 0 : textInfo.z;
+
+    const rectWidth = totalXAdvance * scale;
+    const rectHeight = currentWorldFontSize;
+    const alignY = textInfo.cy === undefined ? 0 : textInfo.cy;
+
+    const occupiedRectangle = {
+      x: rectAnchorX + dx, // Left edge
+      y: rectAnchorY - rectHeight * alignY, // Bottom edge
+      width: rectWidth,
+      height: rectHeight,
+      z: rectAnchorZ
+    };
+
     if (textInfo.cy !== undefined) {
-      y += fontSize * textInfo.cy;
+      // y is modified here for baseline calculation for rendering individual characters
+      y += currentWorldFontSize * textInfo.cy;
     }
 
     for (let char of text) {
@@ -112,8 +176,8 @@ export default class MSDFTextCollection extends GLCollection {
       this.add({
         position: [x + dx, y - sdfPos.yoffset * scale, z],
         charSize: [
-          (fontSize * sdfPos.width) / 42,
-          (-fontSize * sdfPos.height) / 42,
+          scale * sdfPos.width, // Use scaled width directly
+          -scale * sdfPos.height, // Use scaled height directly
         ],
         texturePosition: [
           sdfPos.x / this.sdfTextureWidth,
@@ -125,6 +189,7 @@ export default class MSDFTextCollection extends GLCollection {
       dx += sdfPos.xadvance * scale;
     }
     if (this.scene) this.scene.renderFrame();
+    return occupiedRectangle;
   }
 }
 

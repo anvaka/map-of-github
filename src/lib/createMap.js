@@ -311,7 +311,6 @@ function getDefaultStyle() {
           minzoom: 4,
           maxzoom: 7,
           center: [-9.843750,4.213679,7],
-          bounds: [-54.781000,-47.422000,54.781000,47.422000]
         },
         "place": { // this one loaded asynchronously, and merged with local storage data
           type: "geojson",

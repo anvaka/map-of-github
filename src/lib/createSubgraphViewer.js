@@ -1,7 +1,7 @@
 import {createScene} from 'w-gl';
 import LineCollection from './gl/LineCollection';
 import PointCollection from './gl/PointCollection';
-import MSDFTextCollection from './gl/MSDFTextCollection';
+import createLabelManager from './gl/createLabelManager';
 import bus from './bus';
 
 export function createSubgraphViewer(subgraphInfo) {
@@ -14,11 +14,13 @@ export function createSubgraphViewer(subgraphInfo) {
   const canvas = document.createElement('canvas');
   container.appendChild(canvas);
   const scene = initScene();
+  scene.on('transform', handleTransform);
+
   let layout = null;
   let graph = subgraphInfo.graph;
   let isDisposed = false;
   let layoutSteps = 400; 
-  let nodes, lines, labels;
+  let nodes, lines, labelManager;
   let rafHandle;
   let lastSelectedNode;
   let selectedNodeColor = 0xbf2072ff; // Selected node color
@@ -51,12 +53,19 @@ export function createSubgraphViewer(subgraphInfo) {
     isDisposed = true;
     cancelAnimationFrame(rafHandle);
     canvas.removeEventListener('click', handleCanvasClick);
+    scene.off('transform', handleTransform);
     scene.dispose();
     if (canvas.parentNode) {
       canvas.parentNode.removeChild(canvas);
     }
     container.classList.remove('active');
     bus.off('current-project', handleCurrentProjectChange)
+  }
+
+  function handleTransform(transformEvent) {
+    const visibleRect = getVisibleRectFromDrawContext(transformEvent.drawContext);
+    labelManager.setVisibleRect(visibleRect);
+    labelManager.needsRedraw = true;
   }
 
   function handleCurrentProjectChange(projectName) {
@@ -88,8 +97,7 @@ export function createSubgraphViewer(subgraphInfo) {
   }
 
   function initScene() {
-    let scene = createScene(canvas, {
-    });
+    let scene = createScene(canvas);
     scene.setClearColor(12/255, 41/255, 82/255, 1)
     let initialSceneSize = 40;
     scene.setViewBox({
@@ -206,6 +214,10 @@ export function createSubgraphViewer(subgraphInfo) {
       capacity: Math.max(graph.getNodesCount(), 1000),
     });
 
+    labelManager = createLabelManager(scene);
+    labelManager.setVisibleRect(getVisibleRectFromDrawContext(scene.getDrawContext()));
+    labelManager.needsRedraw = true;
+
     graph.forEachNode(node => {
       if (!layout.getBody(node.id)) return; // not yet in layout
 
@@ -225,9 +237,6 @@ export function createSubgraphViewer(subgraphInfo) {
 
     scene.appendChild(lines);
     scene.appendChild(nodes);
-    labels = new MSDFTextCollection(scene.getGL());
-    redrawLabels();
-    scene.appendChild(labels);
   }
 
   function initializeNodeUI(node, point) {
@@ -242,6 +251,7 @@ export function createSubgraphViewer(subgraphInfo) {
     }
     node.ui = {size, position: [point.x, point.y, point.z || 0], color: node.data.color || 0x90f8fcff};
     node.uiId = nodes.add(node.ui);
+    labelManager.addNodeLabel(node);
   }
 
   function initializeLinkUI(link, from, to) {
@@ -249,23 +259,6 @@ export function createSubgraphViewer(subgraphInfo) {
     let line = { from: [from.x, from.y, from.z || 0], to: [to.x, to.y, to.z || 0], color: 0xFFFFFF10 };
     link.ui = line;
     link.uiId = lines.add(link.ui);
-  }
-
-  function redrawLabels() {
-    labels.clear();
-    graph.forEachNode(node => {
-      if (!node.ui) return; // not yet in layout
-
-      const text = '' + ((node.data && node.data.label) || node.id);
-
-      labels.addText({
-        text,
-        x: node.ui.position[0],
-        y: node.ui.position[1] - node.ui.size / 2,
-        limit: node.ui.size,
-        cx: 0.5
-      });
-    });
   }
 
   function frame() {
@@ -276,8 +269,12 @@ export function createSubgraphViewer(subgraphInfo) {
       layoutSteps -= 1;
       layout.step();
       // Drawing labels is heavy, so avoid it if we don't need it
-      redrawLabels();
+      labelManager.needsRedraw = true;
     } 
+    if (labelManager.needsRedraw) {
+      labelManager.redrawLabels();
+      labelManager.needsRedraw = false;
+    }
     if (willStop) {
       subgraphInfo.onLayoutStatusChange(false);
     }
@@ -323,3 +320,38 @@ export function createSubgraphViewer(subgraphInfo) {
   }
 
 }
+
+function getVisibleRectFromDrawContext(drawContext) {
+    const fov = drawContext.fov;
+    const view = drawContext.view;
+    const canvasWidth = drawContext.width;
+    const canvasHeight = drawContext.height;
+
+    // Calculate visible rectangle at z = 0
+    const cameraPos = view.position;
+    const cameraZ = cameraPos[2];
+    
+    // Only calculate if camera is above z = 0 plane
+    if (cameraZ > 0) {
+      const aspect = canvasWidth / canvasHeight;
+      
+      // Calculate the height of the visible area at z = 0
+      const visibleHeight = 2 * cameraZ * Math.tan(fov / 2);
+      const visibleWidth = visibleHeight * aspect;
+      
+      // Get camera center point (where camera is looking)
+      const centerX = view.center[0];
+      const centerY = view.center[1];
+      
+      // Calculate visible rectangle bounds
+      const visibleRect = {
+        left: centerX - visibleWidth / 2,
+        right: centerX + visibleWidth / 2,
+        top: centerY + visibleHeight / 2,
+        bottom: centerY - visibleHeight / 2,
+        width: visibleWidth,
+        height: visibleHeight
+      };
+      return visibleRect;
+    }
+  }

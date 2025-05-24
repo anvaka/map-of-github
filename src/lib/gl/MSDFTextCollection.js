@@ -1,5 +1,5 @@
 import {defineProgram, InstancedAttribute, GLCollection} from 'w-gl';
-import {mat4, vec4} from 'gl-matrix';
+import {vec4} from 'gl-matrix';
 
 export default class MSDFTextCollection extends GLCollection {
   constructor(gl, options = {}) {
@@ -41,6 +41,9 @@ export default class MSDFTextCollection extends GLCollection {
 
   clear() {
     this.program.setCount(0);
+    if (this.queue.length > 0) {
+      this.queue = [];
+    }
   }
 
   draw(/* gl, drawContext */) {
@@ -97,20 +100,10 @@ export default class MSDFTextCollection extends GLCollection {
 
     const dc = this.scene.getDrawContext();
     const pMat = dc.projection;
-    const vMat = dc.view.matrix;
-    // Assuming this.worldModel is the model matrix for this specific text collection
-    const mMat = this.worldModel; 
-
-    const mvMat = mat4.create();
-    mat4.multiply(mvMat, vMat, mMat);
-    
-    const mvpMat = mat4.create();
-    mat4.multiply(mvpMat, pMat, mvMat);
 
     // Use the provided x, y, z as the local anchor point for the text
-    let textAnchorLocal = vec4.fromValues(x, y, z, 1.0);
-    let textAnchorClip = vec4.create();
-    vec4.transformMat4(textAnchorClip, textAnchorLocal, mvpMat);
+    let textAnchorClip = [0, 0, 0, 1];
+    vec4.transformMat4(textAnchorClip, [x, y, z, 1.0], this.modelViewProjection);
     
     let wClip = textAnchorClip[3];
 
@@ -189,7 +182,7 @@ export default class MSDFTextCollection extends GLCollection {
       dx += sdfPos.xadvance * scale;
     }
     if (this.scene) this.scene.renderFrame();
-    return occupiedRectangle;
+    console.log('MSDFTextCollection: addText: ', text, ' at ', x, y, z, 'font size: ', currentWorldFontSize, 'scale: ', scale, 'dx: ', dx, 'totalXAdvance: ', totalXAdvance);
   }
 }
 

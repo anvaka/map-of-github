@@ -7,15 +7,16 @@ export default function createLabelEditor(scene) {
   let visibleRect;
   const allLabelsInfo = new Map();
   let visibleLabels = new Set();
+  let scheduledVisibleLabelsUpdate = false;
 
   return {
     addNodeLabel(node) {
-      if (allLabelsInfo.has(node.id)) {
-        console.warn('Label with this ID already exists');
-        return;
-      }
+      if (allLabelsInfo.has(node.id)) return;
       allLabelsInfo.set(node.id, node);
       labels.addText(getTextFromNode(node));
+      if (!scheduledVisibleLabelsUpdate) {
+        scheduledVisibleLabelsUpdate = requestAnimationFrame(updateVisibleLabels);
+      }
     },
     redrawLabels,
     setVisibleRect(rect) {
@@ -43,6 +44,7 @@ export default function createLabelEditor(scene) {
   }
 
   function updateVisibleLabels() {
+    scheduledVisibleLabelsUpdate = 0;
     if (!visibleRect) return;
 
     visibleLabels.clear();
@@ -73,7 +75,6 @@ function getTextFromNode(node) {
     text: text,
     x: node.ui.position[0],
     y: node.ui.position[1] - node.ui.size / 2,
-    // limit: node.ui.size,
     cx: 0.5
   };
 }

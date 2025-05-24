@@ -133,8 +133,25 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
           "interpolate",
           ["linear"],
           ["zoom"],
-          5,  ["*", ["get", "size"], .1],
-          23, ["*", ["get", "size"], 1.5],
+          5,  ["*", ["get", "size"], .15],
+          23, ["*", ["get", "size"], 2],
+        ]
+      }
+    });
+    
+    // Add invisible larger circles for easier touch interaction
+    map.addLayer({
+      id: 'nodes-touch-target',
+      type: 'circle',
+      source: 'nodes',
+      paint: {
+        "circle-color": "transparent",
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          5, 12,
+          23, 24
         ]
       }
     });
@@ -210,7 +227,16 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     map.addLayer(linksLayer, 'nodes');
     
     // Set up click listener for node selection
-    map.on('click', 'nodes', handleNodeClick);
+    map.on('click', 'nodes-touch-target', handleNodeClick);
+    
+    // Also set up hover effects for better feedback
+    map.on('mouseenter', 'nodes-touch-target', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.on('mouseleave', 'nodes-touch-target', () => {
+      map.getCanvas().style.cursor = '';
+    });
     
     // Initialize layout
     initializeLayout();

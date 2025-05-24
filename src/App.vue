@@ -166,10 +166,10 @@ async function listCurrentConnections() {
     currentFocus.value.disposeSubgraphViewer();
   }
   
-  let groupId = await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon);
+  const groupId = lastSelected.groupId ?? (await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon));
   if (groupId !== undefined) {
     const focusViewModel = new FocusViewModel(lastSelected.text, groupId);
-    currentGroup.value = null;
+    // currentGroup.value = null;
     currentFocus.value = focusViewModel;
   }
 }

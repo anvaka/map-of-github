@@ -472,7 +472,7 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     };
     
     // Get the selected node position
-    const selectedPos = layout.getNodePosition(nodeId);
+    const selectedPos = layout.getBody(nodeId)?.pos;
     if (!selectedPos) return; // Node not in layout yet
     
     // Add the primary selected node
@@ -537,7 +537,8 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     bus.fire('repo-selected', { 
       text: nodeId,
       lat: selectedMapCoords.lat,
-      lon: selectedMapCoords.lng
+      lon: selectedMapCoords.lng,
+      groupId: graph.getNode(nodeId)?.data?.c
     });
   }
   

@@ -126,7 +126,8 @@ export default class MSDFTextCollection extends GLCollection {
     // This is the size in world units that would make the text `desiredScreenHeight` pixels tall
     // if the text was at a distance from the camera where its wClip coordinate is 1.
     // We then scale this by the actual wClip of the text's anchor.
-    currentWorldFontSize = (desiredScreenHeight * wClip) / (projYScale * 0.5 * viewportHeight);
+    const dpr = window.devicePixelRatio || 1;
+    currentWorldFontSize = (desiredScreenHeight * dpr * wClip) / (projYScale * 0.5 * viewportHeight);
 
     let scale = 0;
     if (this.fontInfo && this.fontInfo.info && this.fontInfo.info.size > 0) {
@@ -137,22 +138,6 @@ export default class MSDFTextCollection extends GLCollection {
     if (textInfo.cx !== undefined) {
       dx -= totalXAdvance * textInfo.cx * scale;
     }
-
-    const rectAnchorX = textInfo.x === undefined ? 0 : textInfo.x;
-    const rectAnchorY = textInfo.y === undefined ? 0 : textInfo.y;
-    const rectAnchorZ = textInfo.z === undefined ? 0 : textInfo.z;
-
-    const rectWidth = totalXAdvance * scale;
-    const rectHeight = currentWorldFontSize;
-    const alignY = textInfo.cy === undefined ? 0 : textInfo.cy;
-
-    const occupiedRectangle = {
-      x: rectAnchorX + dx, // Left edge
-      y: rectAnchorY - rectHeight * alignY, // Bottom edge
-      width: rectWidth,
-      height: rectHeight,
-      z: rectAnchorZ
-    };
 
     if (textInfo.cy !== undefined) {
       // y is modified here for baseline calculation for rendering individual characters
@@ -182,7 +167,6 @@ export default class MSDFTextCollection extends GLCollection {
       dx += sdfPos.xadvance * scale;
     }
     if (this.scene) this.scene.renderFrame();
-    console.log('MSDFTextCollection: addText: ', text, ' at ', x, y, z, 'font size: ', currentWorldFontSize, 'scale: ', scale, 'dx: ', dx, 'totalXAdvance: ', totalXAdvance);
   }
 }
 

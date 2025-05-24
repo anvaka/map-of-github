@@ -88,6 +88,7 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
   let lastSelectedNode = null;
   let nodesGeoJSON = createEmptyFeatureCollection();
   let linksLayer = null;
+  let firstTimeLayout = true;
   
   // Set up maplibre sources and layers once map is loaded
   map.on('load', () => {
@@ -320,6 +321,14 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
       if (subgraphInfo.onLayoutStatusChange) {
         subgraphInfo.onLayoutStatusChange(false);
       }
+      if (firstTimeLayout) {
+        firstTimeLayout = false;
+        // need a timeout, because maplibre.isStyleLoaded() is not true immediately after we
+        // modify the points.
+        setTimeout(() => {
+          selectNode(subgraphInfo.nodeId, true);
+        }, 200);
+      }
       layoutAnimationFrame = null;
     } else {
       layoutAnimationFrame = requestAnimationFrame(runLayout);
@@ -421,8 +430,6 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     // Fit map to nodes if first update
     if (features.length > 0 && !lastSelectedNode) {
       fitMapToNodes();
-      // Also select the root node initially
-      selectNode(subgraphInfo.nodeId);
     }
   }
   
@@ -463,7 +470,9 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
   
   // Select a node and update visual highlighting
   function selectNode(nodeId, bringToView = true) {
-    if (!map.isStyleLoaded() || !layout || nodeId === lastSelectedNode) return;
+    if (!map.isStyleLoaded() || !layout || nodeId === lastSelectedNode) {
+      return;
+    }
     
     // Create highlighted nodes data
     const highlightedNodes = {

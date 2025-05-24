@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { buildLocalNeighborsGraphForGroup } from './downloadGroupGraph';
 import downloadGroupGraph from './downloadGroupGraph';
-import { createSubgraphViewer } from './createSubgraphViewer';
+import { createMaplibreSubgraphViewer } from './createMaplibreSubgraphViewer';
 
 // Static reference to maintain single instance
 let activeSubgraphViewer = null;
@@ -104,7 +104,7 @@ export default class FocusViewModel {
       this.disposeSubgraphViewer();
       
       // Create the new subgraph viewer
-      activeSubgraphViewer = createSubgraphViewer({
+      activeSubgraphViewer = createMaplibreSubgraphViewer({
         graph,
         nodeId: repositoryName,
         groupId,

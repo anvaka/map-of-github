@@ -1,9 +1,9 @@
 import maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import bus from "./bus";
 import {getCustomLayer} from "./gl/createLinesCollection.js";
 import config from "./config";
 import getColorTheme from './getColorTheme';
+import getComplimentaryColor from "./getComplimentaryColor"; 
 
 const currentColorTheme = getColorTheme();
 
@@ -30,9 +30,9 @@ const NODE_COLORS = {
   default: "#EAEDEF", // Default node color
   selected: "#bf2072", // Primary highlight color
   neighbor: "#e56aaa", // Secondary highlight color
-  textColor: "#FFFFFF",
-  textHaloColor: "#111111",
-  textHaloWidth: 0
+  textColor: currentColorTheme.circleLabelsColor,
+  textHaloColor: currentColorTheme.circleLabelsHaloColor,
+  textHaloWidth: currentColorTheme.circleLabelsHaloWidth,
 };
 
 // Scale factor for converting layout coordinates to map coordinates
@@ -63,6 +63,7 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
   mapContainer.style.width = '100%';
   mapContainer.style.height = '100%';
   container.appendChild(mapContainer);
+  const complimentaryLinkColor = getComplimentaryColor(currentColorTheme.background);
   
   // Initialize maplibre map
   const map = new maplibregl.Map({
@@ -145,15 +146,6 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
       source: 'selected-nodes',
       paint: {
         'circle-color': ['get', 'color'],
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          1, ['*', ['get', 'size'], 0.7],
-          5, ['*', ['get', 'size'], 1.2]
-        ],
-        'circle-stroke-color': '#000000',
-        'circle-stroke-width': 1
       }
     });
     
@@ -168,14 +160,15 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
         'text-anchor': 'top',
         'text-max-width': 10,
         'symbol-sort-key': ['-', 0, ['get', 'size']],
+        'symbol-spacing': 500,
         'text-offset': [0, 0.5],
         'text-size': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          1, 10,
-          5, 12
-        ]
+          8,  ['/', ['get', 'size'], 4],
+          10, ['+', ['get', 'size'], 8]
+        ],
       },
       paint: {
         'text-color': NODE_COLORS.textColor,
@@ -195,13 +188,14 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
         'text-anchor': 'top',
         'text-max-width': 10,
         'symbol-sort-key': ['-', 0, ['get', 'textSize']],
+        'symbol-spacing': 500,
         'text-offset': [0, 0.5],
         'text-size': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          1, ['*', ['get', 'textSize'], 12],
-          5, ['*', ['get', 'textSize'], 14]
+          8, ['/', ['get', 'size'], 4],
+          10, ['+', ['get', 'size'], 8]
         ]
       },
       paint: {
@@ -378,7 +372,7 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
       const line = createLinkLine(
         link.fromId, 
         link.toId, 
-        isSelectedLink ? 0xFFFFFFFF : 0xFFFFFF20 // White for selected links, transparent white for others
+        isSelectedLink ? 0xFFFFFFFF : complimentaryLinkColor
       );
       
       if (!line) return;
@@ -455,8 +449,6 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     const selectedPos = layout.getNodePosition(nodeId);
     if (!selectedPos) return; // Node not in layout yet
     
-    const selectedMapCoords = convertLayoutToMapCoordinates(selectedPos);
-    
     // Add the primary selected node
     const selectedFeature = createNodeFeature(nodeId, {
       color: NODE_COLORS.selected,
@@ -489,7 +481,9 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
       
       // Add first-level connection
       const line = createLinkLine(nodeId, linkedNode.id, 0xFFFFFFFF);  // Bright white for direct connections
-      if (line) firstLevelLinks.push(line);
+      if (line) {
+        firstLevelLinks.push(line);
+      }
     });
     
     // Draw all other connections (non-highlighted)
@@ -498,25 +492,22 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
       // Skip links connected to selected node as they're already handled
       if (link.fromId === nodeId || link.toId === nodeId) return;
       
-      const line = createLinkLine(link.fromId, link.toId, 0xFFFFFF20);  // Semi-transparent for background connections
+      const line = createLinkLine(link.fromId, link.toId, complimentaryLinkColor);  // Semi-transparent for background connections
       if (line) linksLayer.addLine(line);
     });
-    
-    // Add first-level links last so they appear on top
-    firstLevelLinks.forEach(line => linksLayer.addLine(line));
-    
-    // Update the selected nodes data source
+
+    // Add the selected node and neighbors to the map
     map.getSource('selected-nodes').setData(highlightedNodes);
     
-    // Save the selected node
+    // Update the links layer with the new lines
+    firstLevelLinks.forEach(line => linksLayer.addLine(line));
+    
     lastSelectedNode = nodeId;
     
-    // Center view on the selected node
+    const selectedMapCoords = convertLayoutToMapCoordinates(selectedPos);
     if (bringToView) {
       map.flyTo({center: [selectedMapCoords.lng, selectedMapCoords.lat]});
     }
-    
-    // Notify listeners that a node was selected
     bus.fire('repo-selected', { 
       text: nodeId,
       lat: selectedMapCoords.lat,
@@ -524,38 +515,49 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     });
   }
   
-  // Fit the map viewport to show all nodes
+  // Fit the map to the bounds of the current nodes
   function fitMapToNodes() {
-    if (nodesGeoJSON.features.length === 0) return;
+    if (!layout || isDisposed) return;
     
-    const bounds = new maplibregl.LngLatBounds();
+    const bounds = calculateBounds();
+    if (!bounds) return;
     
-    nodesGeoJSON.features.forEach(feature => {
-      bounds.extend(feature.geometry.coordinates);
-    });
-    
-    // Add some padding
     map.fitBounds(bounds, {
-      padding: 50,
-      duration: 0 // No animation for initial fit
+      padding: 20,
+      duration: 500
     });
   }
   
-  // Handle project selection from outside this component
-  function handleCurrentProjectChange(projectName) {
-    if (projectName === lastSelectedNode || !layout) return;
+  // Calculate the bounds for all current nodes in the viewer
+  function calculateBounds() {
+    if (!layout || isDisposed) return null;
     
-    // Check if projectName exists in our graph
-    if (!layout.getBody(projectName)) return;
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
     
-    // Select the node
-    selectNode(projectName);
+    graph.forEachNode(node => {
+      if (!layout.getBody(node.id)) return; // Skip if node not in layout
+      
+      const pos = layout.getNodePosition(node.id);
+      const mapCoords = convertLayoutToMapCoordinates(pos);
+      
+      if (mapCoords.lng < minLng) minLng = mapCoords.lng;
+      if (mapCoords.lat < minLat) minLat = mapCoords.lat;
+      if (mapCoords.lng > maxLng) maxLng = mapCoords.lng;
+      if (mapCoords.lat > maxLat) maxLat = mapCoords.lat;
+    });
+    
+    if (minLng === Infinity || minLat === Infinity || maxLng === -Infinity || maxLat === -Infinity) {
+      return null; // No valid nodes to calculate bounds
+    }
+    
+    return [[minLng, minLat], [maxLng, maxLat]];
   }
   
-  // Clean up resources
+  // Dispose the viewer and clean up resources
   function disposeViewer() {
-    if (isDisposed) return;
-    
     isDisposed = true;
     
     if (layoutAnimationFrame) {
@@ -568,16 +570,25 @@ export function createMaplibreSubgraphViewer(subgraphInfo) {
     if (map) {
       map.remove();
     }
-    
+
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
-    
+
     container.classList.remove('active');
+  }
+  
+  function handleCurrentProjectChange(projectName) {
+    if (projectName === lastSelectedNode || !layout) return;
+    
+    // Check if projectName exists in our graph
+    if (!layout.getBody(projectName)) return;
+    
+    // Select the node
+    selectNode(projectName);
   }
 }
 
-// Helper to create an empty GeoJSON feature collection
 function createEmptyFeatureCollection() {
   return {
     type: 'FeatureCollection',

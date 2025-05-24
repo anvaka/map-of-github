@@ -137,7 +137,7 @@ function toTreeView(graph, startNodeId, depth = 2) {
     id: rootGraphNode.id,
     name: rootGraphNode.data?.name || rootGraphNode.id,
     isExternal: rootGraphNode.data?.isExternal || false,
-    lngLat: rootGraphNode.data?.lngLat
+    lngLat: rootGraphNode.data?.l
   };
 
   // Helper function to recursively build the tree for children
@@ -162,7 +162,7 @@ function toTreeView(graph, startNodeId, depth = 2) {
         id: linkedGraphNode.id,
         name: linkedGraphNode.data?.name || linkedGraphNode.id,
         isExternal: linkedGraphNode.data?.isExternal || false,
-        lngLat: linkedGraphNode.data?.lngLat
+        lngLat: linkedGraphNode.data?.l
       };
 
       // Create a new path set for the recursive call, including the current child.

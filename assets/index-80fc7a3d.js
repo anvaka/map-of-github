@@ -1,0 +1,2 @@
+import{g as p}from"./config-978035c8.js";import{r as f}from"./index-2e9713b4.js";function s(t,n){for(var o=0;o<n.length;o++){const e=n[o];if(typeof e!="string"&&!Array.isArray(e)){for(const r in e)if(r!=="default"&&!(r in t)){const a=Object.getOwnPropertyDescriptor(e,r);a&&Object.defineProperty(t,r,a.get?a:{enumerable:!0,get:()=>e[r]})}}}return Object.freeze(Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}))}var i=f();const g=p(i),l=s({__proto__:null,default:g},[i]);export{l as i};
+//# sourceMappingURL=index-80fc7a3d.js.map

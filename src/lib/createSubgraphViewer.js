@@ -27,6 +27,7 @@ export function createSubgraphViewer(subgraphInfo) {
   let defaultNodeColor = 0x90f8fcff; // Default node color
 
   canvas.addEventListener('click', handleCanvasClick);
+  canvas.addEventListener('touchend', handleCanvasTouch);
   bus.on('current-project', handleCurrentProjectChange)
 
   import('ngraph.forcelayout').then(forceLayout => {
@@ -53,6 +54,7 @@ export function createSubgraphViewer(subgraphInfo) {
     isDisposed = true;
     cancelAnimationFrame(rafHandle);
     canvas.removeEventListener('click', handleCanvasClick);
+    canvas.removeEventListener('touchend', handleCanvasTouch);
     scene.off('transform', handleTransform);
     scene.dispose();
     if (canvas.parentNode) {
@@ -153,6 +155,52 @@ export function createSubgraphViewer(subgraphInfo) {
       // Check if the click is within the node's radius
       // node.ui.size is typically diameter. Radius is node.ui.size / 2.
       const nodeRadius = (nearestNode.ui && typeof nearestNode.ui.size === 'number') ? nearestNode.ui.size / 2 : 2.5; // Default radius
+      
+      if (Math.sqrt(minDistSq) < nodeRadius) {
+        selectNode(nearestNode.id);
+        const finalPos = layout.getNodePosition(nearestNode.id);
+        bus.fire('repo-selected', {
+          text: nearestNode.id, // Or nearestNode.data.label if preferred
+          x: finalPos.x,
+          y: finalPos.y,
+          // z: finalPos.z || 0 // include if z-coordinate is relevant
+        });
+      }
+    }
+  }
+
+  function handleCanvasTouch(event) {
+    if (!layout || !graph || !canvas) return;
+    event.preventDefault(); // Prevent default touch behavior
+    
+    // Get the touch point from the event
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    
+    const [sceneX, sceneY] = scene.getSceneCoordinate(touch.clientX, touch.clientY);
+
+    let minDistSq = Infinity;
+    let nearestNode = null;
+
+    graph.forEachNode(node => {
+      if (!layout.getBody(node.id)) return; // Node not in layout yet
+      const pos = layout.getNodePosition(node.id);
+      
+      // Using 2D distance for touch interaction
+      const dx = pos.x - sceneX;
+      const dy = pos.y - sceneY;
+      const distSq = dx * dx + dy * dy;
+
+      if (distSq < minDistSq) {
+        minDistSq = distSq;
+        nearestNode = node;
+      }
+    });
+
+    if (nearestNode) {
+      // Check if the touch is within the node's radius
+      // Use slightly larger radius for touch to improve touch interaction
+      const nodeRadius = (nearestNode.ui && typeof nearestNode.ui.size === 'number') ? nearestNode.ui.size / 2 * 1.5 : 3.75; // 1.5x radius for touch
       
       if (Math.sqrt(minDistSq) < nodeRadius) {
         selectNode(nearestNode.id);

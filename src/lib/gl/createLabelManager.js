@@ -65,8 +65,12 @@ export default function createLabelEditor(scene) {
 }
 
 function getTextFromNode(node) {
+  let text = '' + ((node.data && node.data.label) || node.id);
+  if (!node.isSelected && text.indexOf('/') > -1) {
+    text = text.split('/').pop();
+  }
   return {
-    text: '' + ((node.data && node.data.label) || node.id),
+    text: text,
     x: node.ui.position[0],
     y: node.ui.position[1] - node.ui.size / 2,
     // limit: node.ui.size,

@@ -172,9 +172,11 @@ export function createSubgraphViewer(subgraphInfo) {
     if (lastSelectedNode && lastSelectedNode !== nodeId) {
       // Reset the previous selection
       updateNodeAppearance(lastSelectedNode, defaultNodeColor);
+      graph.getNode(lastSelectedNode).isSelected = false;
       
       // Reset neighbors of previous selection
       graph.forEachLinkedNode(lastSelectedNode, (neighborNode, link) => {
+        neighborNode.isSelected = false;
         updateNodeAppearance(neighborNode.id, defaultNodeColor);
         updateLinkAppearance(link, 0xFFFFFF10); // Reset to default edge color
       });
@@ -182,14 +184,17 @@ export function createSubgraphViewer(subgraphInfo) {
 
     // Set new selection
     updateNodeAppearance(nodeId, selectedNodeColor);
+    graph.getNode(nodeId).isSelected = true;
     
     // Highlight immediate neighbors and connecting edges
     graph.forEachLinkedNode(nodeId, (neighborNode, link) => {
+      neighborNode.isSelected = true;
       updateNodeAppearance(neighborNode.id, 0xe56aaaff); // Highlight color for neighbors
       updateLinkAppearance(link, 0xFFFFFFFF); // Bright white for highlighted edges
     });
     
     lastSelectedNode = nodeId;
+    labelManager.needsRedraw = true; // Ensure labels are redrawn
   }
 
   // Helper function to update node appearance

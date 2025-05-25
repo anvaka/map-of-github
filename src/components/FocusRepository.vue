@@ -264,4 +264,26 @@ ul {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+@media (max-width: 600px) {
+  .loading-logs {
+    padding: 8px;
+  }
+  
+  .log-header {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  
+  /* Hide all log messages except current-log on mobile */
+  .log-messages {
+    display: none;
+  }
+  
+  /* Make current log more visible */
+  .current-log {
+    margin-bottom: 0;
+    font-size: 12px;
+  }
+}
 </style>

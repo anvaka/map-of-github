@@ -476,13 +476,15 @@ async function listCurrentConnections() {
   }
   .right-panel {
     width: 100%;
-  }
-  .neighbors-container {
     height: 30%;
     top: 70%;
     z-index: 2;
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -4px 4px rgba(0,0,0,0.42);
+  }
+  .neighbors-container {
+    height: 100%;
+    z-index: 2;
   }
 
   .top-right-support {

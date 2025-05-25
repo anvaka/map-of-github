@@ -1,4 +1,3 @@
-import bus from './bus';
 import { fetchAndProcessGraph } from './fetchAndProcessGraph';
 
 const graphsCache = new Map();
@@ -93,14 +92,6 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
 
   if (logCallback) logCallback(`Root node "${repositoryName}" found. Starting graph exploration...`);
 
-  const subgraphLoadEventArgs = {
-    graph: localGraph,
-    nodeId: startNode.id,
-    groupId: groupId,
-    callWhenDone: Function.prototype
-  };
-  bus.fire('subgraph-load-started', subgraphLoadEventArgs);
-
   // Add starting node to local graph and queue
   localGraph.addNode(startNode.id, { ...startNode.data });
   queue.push({ nodeId: startNode.id, groupId, currentDepth: 0 });
@@ -167,8 +158,6 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
     const externalGroupText = externalGroups.size > 0 ? `, including ${externalGroups.size} external groups` : '';
     logCallback(`Graph construction complete. Total: ${visited.size} nodes, ${totalLinks} connections${externalGroupText}.`);
   }
-
-  subgraphLoadEventArgs.callWhenDone();
 
   return localGraph;
 }

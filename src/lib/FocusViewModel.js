@@ -20,6 +20,8 @@ export default class FocusViewModel {
     this.expandingGraph = ref(false);
     this.graphData = ref(null);
     this.layoutRunning = ref(false);
+    this.logMessages = ref([]);
+    this.currentLog = ref('');
 
     downloadGroupGraph(groupId).then(graph => {
       this.loading.value = false;
@@ -88,15 +90,28 @@ export default class FocusViewModel {
     if (this.expandingGraph) return; // Prevent multiple clicks
 
     this.expandingGraph = true;
+    this.logMessages = [];
+    this.currentLog = '';
+    
     try {
       const repositoryName = this.name;
       const groupId = this.groupId;
 
       // Depth of 2 gives immediate neighbors and their neighbors
       const depth = 2;
+      
+      // Create a log callback to update progress
+      const logCallback = (message) => {
+        const timestamp = new Date().toISOString().substring(11, 19);
+        const formattedMessage = `[${timestamp}] ${message}`;
+        this.currentLog = formattedMessage;
+        this.logMessages = [...this.logMessages, formattedMessage].slice(-50); // Keep most recent 50 messages
+      };
 
-      const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth);
-
+      logCallback('Starting graph expansion...');
+      const graph = await buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth, logCallback);
+      logCallback('Graph data received, building tree view...');
+      
       // Convert graph to tree view
       this.graphData = toTreeView(graph, repositoryName, depth);
 

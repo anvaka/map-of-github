@@ -93,10 +93,17 @@ function handleNodeSelected(node, event) {
             <a :href="getLink(repo)" @click.prevent="showDetails(repo, $event)" target="_blank">{{repo.name}} <span v-if="repo.isExternal" title="External country">E</span>
             </a>
           </li>
-        </ul>
-        <div v-if="vm.expandingGraph" class="loading">
-          Loading graph...
+        </ul>      <div v-if="vm.expandingGraph" class="loading">
+        <div class="loading-logs">
+          <div class="log-header">Loading expanded graph view...</div>
+          <div class="current-log" v-if="vm.currentLog">{{ vm.currentLog }}</div>
+          <div class="log-messages" v-if="vm.logMessages.length > 0">
+            <div v-for="(log, index) in vm.logMessages" :key="index" class="log-message">
+              {{ log }}
+            </div>
+          </div>
         </div>
+      </div>
       </div>
       <div v-else class="tree-view-container">
         <TreeView :tree="vm.graphData" @node-selected="handleNodeSelected" />
@@ -216,5 +223,45 @@ ul {
 .graph-controls {
   margin-top: 8px;
   padding: 4px 0;
+}
+
+.loading {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.loading-logs {
+  font-family: monospace;
+  font-size: 13px;
+  border-radius: 4px;
+  background: var(--color-background-mute);
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+.log-header {
+  font-weight: bold;
+  color: var(--critical-call-to-action);
+  margin-bottom: 8px;
+}
+
+.current-log {
+  color: var(--color-link-hover);
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.log-messages {
+  color: var(--color-text);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.log-message {
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>

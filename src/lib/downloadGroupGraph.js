@@ -1,10 +1,10 @@
-import config from './config';
 import bus from './bus';
+import { fetchAndProcessGraph } from './fetchAndProcessGraph';
 
 const graphsCache = new Map();
 const pendingRequests = new Map();
 
-export default async function downloadGroupGraph(groupId) {
+export default async function downloadGroupGraph(groupId, progressCallback) {
   if (graphsCache.has(groupId)) {
     return graphsCache.get(groupId);
   }
@@ -14,7 +14,7 @@ export default async function downloadGroupGraph(groupId) {
     return pendingRequests.get(groupId);
   }
 
-  const promise = fetchAndProcessGraph(groupId);
+  const promise = fetchAndProcessGraph(groupId, progressCallback);
   pendingRequests.set(groupId, promise);
   
   try {
@@ -27,30 +27,57 @@ export default async function downloadGroupGraph(groupId) {
   }
 }
 
-async function fetchAndProcessGraph(groupId) {
-  let response = await fetch(`${config.graphsEndpoint}/${groupId}.graph.dot`);
-  let text = await response.text();
-
-  let fromDot = await import('ngraph.fromdot');
-  let graph = fromDot.default(text);
-  graph.forEachNode(node => {
-    node.data.l = node.data.l.split(',').map(x => +x);
-    if (node.data.c === undefined) {
-      // Nodes of external groups will have their groupId set in the `.data.c` property
-      // However nodes that belong to current group will have this property set to undefined
-      // We set it here to make sure we know which group the node belongs to
-      node.data.c = groupId;
-    }
-  });
-
-  return graph;
+// Helper function to format bytes
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth) {
+export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, depth, logCallback) {
   const createGraph = await import('ngraph.graph');
   const localGraph = createGraph.default();
-  // Fetch the initial group's graph
-  const rootGraph = await downloadGroupGraph(groupId);
+  
+  if (logCallback) logCallback(`Downloading network data for group ${groupId}...`);
+  
+  const startTime = performance.now();
+  
+  // Create a download progress tracker
+  const downloadProgressCallback = (progress) => {
+    if (!logCallback) return;
+    
+    const bytesReceived = progress.bytesReceived || 0;
+    const totalBytes = progress.totalBytes;
+    
+    if (totalBytes) {
+      const percentComplete = Math.round((bytesReceived / totalBytes) * 100);
+      logCallback(`Downloading ${progress.fileName}: ${formatBytes(bytesReceived)} of ${formatBytes(totalBytes)} (${percentComplete}%)`);
+    } else {
+      logCallback(`Downloading ${progress.fileName}: ${formatBytes(bytesReceived)} received`);
+    }
+  };
+  
+  // Fetch the initial group's graph with progress tracking
+  let rootGraph;
+  try {
+    rootGraph = await downloadGroupGraph(groupId, downloadProgressCallback);
+    
+    if (logCallback) {
+      logCallback(`Graph loaded: ${rootGraph.getNodesCount()} nodes, ${rootGraph.getLinksCount()} links`);
+    }
+  } catch (error) {
+    if (logCallback) logCallback(`Error downloading group data: ${error.message}`);
+    throw error;
+  }
+  
+  const downloadTime = Math.round(performance.now() - startTime);
+  if (logCallback) logCallback(`Download complete in ${downloadTime}ms. Building network graph...`);
   
   // Track visited nodes to avoid duplicates
   const visited = new Set();
@@ -59,7 +86,12 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
   
   // Get the starting node
   const startNode = rootGraph.getNode(repositoryName);
-  if (!startNode) return localGraph; // Repository not found
+  if (!startNode) {
+    if (logCallback) logCallback(`Error: Repository "${repositoryName}" not found in group ${groupId}`);
+    throw new Error(`Repository "${repositoryName}" not found in group ${groupId}`);
+  }
+
+  if (logCallback) logCallback(`Root node "${repositoryName}" found. Starting graph exploration...`);
 
   const subgraphLoadEventArgs = {
     graph: localGraph,
@@ -74,20 +106,40 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
   queue.push({ nodeId: startNode.id, groupId, currentDepth: 0 });
   visited.add(startNode.id);
   
+  // Stats tracking
+  let processedNodes = 0;
+  let totalLinks = 0;
+  const externalGroups = new Set();
+  
   // BFS traversal up to specified depth
   while (queue.length > 0) {
     const { nodeId, groupId: currentGroupId, currentDepth } = queue.shift();
     
     if (currentDepth >= depth) continue;
     
+    processedNodes++;
+    
     // Get the graph for the current group
-    const currentGraph = await downloadGroupGraph(currentGroupId);
+    let currentGraph;
+    if (currentGroupId !== groupId) {
+      if (logCallback) {
+        logCallback(`Loading external group: ${currentGroupId} (external group)`);
+      }
+      currentGraph = await downloadGroupGraph(currentGroupId, downloadProgressCallback);
+      externalGroups.add(currentGroupId);
+    } else {
+      currentGraph = rootGraph;
+    }
+    
+    let linksAdded = 0;
     
     // Process all neighbors of the current node
     currentGraph.forEachLinkedNode(nodeId, (neighborNode, link) => {
       // Add the edge to the local graph
       if (!localGraph.hasLink(link.fromId, link.toId) && !localGraph.hasLink(link.toId, link.fromId)) {
         localGraph.addLink(link.fromId, link.toId, { ...link.data });
+        linksAdded++;
+        totalLinks++;
       }
       
       // Skip already visited nodes
@@ -105,6 +157,15 @@ export async function buildLocalNeighborsGraphForGroup(groupId, repositoryName, 
         currentDepth: currentDepth + 1 
       });
     });
+    
+    if (logCallback && (processedNodes % 10 === 0 || linksAdded > 20)) {
+      logCallback(`Processed ${processedNodes} nodes, discovered ${visited.size} nodes, ${totalLinks} connections. Queue size: ${queue.length}`);
+    }
+  }
+
+  if (logCallback) {
+    const externalGroupText = externalGroups.size > 0 ? `, including ${externalGroups.size} external groups` : '';
+    logCallback(`Graph construction complete. Total: ${visited.size} nodes, ${totalLinks} connections${externalGroupText}.`);
   }
 
   subgraphLoadEventArgs.callWhenDone();

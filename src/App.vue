@@ -165,6 +165,9 @@ async function listCurrentConnections() {
   if (currentFocus.value) {
     currentFocus.value.disposeSubgraphViewer();
   }
+  if (contextMenu.value) {
+    contextMenu.value = null;
+  }
   
   const groupId = lastSelected.groupId ?? (await window.mapOwner?.getGroupIdAt(lastSelected.lat, lastSelected.lon));
   if (groupId !== undefined) {

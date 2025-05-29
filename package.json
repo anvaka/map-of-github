@@ -19,7 +19,7 @@
     "ngraph.fromdot": "^7.0.0",
     "ngraph.graph": "^20.0.1",
     "vue": "^3.2.47",
-    "w-gl": "^0.21.0"
+    "w-gl": "^0.22.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.0.0",

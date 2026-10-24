@@ -7,6 +7,7 @@ import downloadGroupGraph from "./downloadGroupGraph.js";
 import getComplimentaryColor from "./getComplimentaryColor";
 import createLabelEditor from "./label-editor/createLabelEditor";
 import getColorTheme from "./getColorTheme";
+import findNearestCity from "./findNearestCity.mjs";
 // import { createRadialGradient } from './gl/createRadialGradient';
 
 const primaryHighlightColor = "#bf2072";
@@ -49,7 +50,7 @@ export default function createMap() {
 
     contextMenuItems.items.push(showLargestProjectsContextMenuItem(bg));
 
-    const nearestCity = findNearestCity(e.point);
+    const nearestCity = findNearestCity(map, e.point);
     if (nearestCity) {
       let name = nearestCity.properties.label;
       let parts = name.split('/')
@@ -69,7 +70,7 @@ export default function createMap() {
   });
 
   map.on("mousemove", (e) => {
-    // let hoveredFeature = findNearestCity(e.point);
+    // let hoveredFeature = findNearestCity(map, e.point);
     // if (hoveredFeature) {
     //   const bgFeature = getBackgroundNearPoint(e.point);
     //   bus.fire("show-tooltip", { 
@@ -85,7 +86,7 @@ export default function createMap() {
 
   map.on("click", (e) => {
     bus.fire("show-context-menu");
-    const nearestCity = findNearestCity(e.point);
+    const nearestCity = findNearestCity(map, e.point);
     if (!nearestCity) return;
     const repo = nearestCity.properties.label
     if (!repo) return;
@@ -270,28 +271,6 @@ export default function createMap() {
     backgroundEdgesFetch.cancel = () => {isCancelled = true};
   }
 
-  function findNearestCity(point) {
-    let width = 16;
-    let height = 16;
-    const features = map.queryRenderedFeatures([
-      [point.x - width / 2, point.y - height / 2],
-      [point.x + width / 2, point.y + height / 2]
-    ], { layers: ["circle-layer"] });
-    if (!features.length) return;
-    let distance = Infinity;
-    let nearestCity = null;
-    features.forEach(feature => {
-      let geometry = feature.geometry.coordinates;
-      let dx = geometry[0] - point.x;
-      let dy = geometry[1] - point.y;
-      let d = dx * dx + dy * dy;
-      if (d < distance) {
-        distance = d;
-        nearestCity = feature;
-      }
-    });
-    return nearestCity;
-  }
 }
 
 function getDefaultStyle() {
